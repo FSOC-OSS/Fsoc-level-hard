@@ -1,8 +1,5 @@
-// src/components/QuizResults.jsx
-import React from "react";
+
 import {
-  exportToJSON,
-  exportToCSV,
   exportToPDF,
   printScorecard,
 } from "../utils/exportUtils";
