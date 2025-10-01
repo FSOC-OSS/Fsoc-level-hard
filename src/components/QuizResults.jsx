@@ -1,8 +1,4 @@
-
-import {
-  exportToPDF,
-  printScorecard,
-} from "../utils/exportUtils";
+import { exportToPDF, printScorecard } from "../utils/exportUtils";
 import ShareResults from "./ShareResults";
 
 const QuizResults = ({ score, totalQuestions, onRestart }) => {
@@ -114,7 +110,9 @@ const QuizResults = ({ score, totalQuestions, onRestart }) => {
           >
             🔄 Try Again
           </button>
-
+          <span className="block text-xs text-gray-400 mt-1">
+            or press <span className="bg-gray-200 text-gray-700 px-1 py-0.5 rounded font-mono">R</span> to restart
+          </span>
           <button
             onClick={() => window.open("https://opentdb.com/", "_blank")}
             className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition-colors duration-200 text-sm sm:text-base"
@@ -128,36 +126,18 @@ const QuizResults = ({ score, totalQuestions, onRestart }) => {
           <p className="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3">
             Save or share your results:
           </p>
-
           <button
             onClick={() => exportToPDF(score, totalQuestions, percentage)}
             className="w-full bg-purple-200 hover:bg-purple-300 text-purple-900 font-semibold py-2 px-4 rounded-lg text-sm sm:text-base"
           >
             📄 Export as PDF
           </button>
-
           <button
             onClick={() => printScorecard(score, totalQuestions, percentage)}
             className="w-full bg-indigo-200 hover:bg-indigo-300 text-indigo-900 font-semibold py-2 px-4 rounded-lg text-sm sm:text-base"
           >
             🖨 Print Scorecard
           </button>
-
-          {/* <button
-            onClick={() => exportToJSON(score, totalQuestions, percentage)}
-            className="w-full bg-yellow-200 hover:bg-yellow-300 text-yellow-900 font-semibold py-2 px-4 rounded-lg text-sm sm:text-base"
-          >
-            📄 Export as JSON
-          </button> */}
-
-          {/* <button
-            onClick={() => exportToCSV(score, totalQuestions, percentage)}
-            className="w-full bg-green-200 hover:bg-green-300 text-green-900 font-semibold py-2 px-4 rounded-lg text-sm sm:text-base"
-          >
-            📊 Export as CSV
-          </button> */}
-
-          {/* Social Sharing Component */}
           <ShareResults
             score={score}
             totalQuestions={totalQuestions}

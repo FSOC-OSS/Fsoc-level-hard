@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import QuizQuestion from "./QuizQuestion";
 import QuizResults from "./QuizResults";
 import LoadingSpinner from "./LoadingSpinner";
@@ -18,7 +18,7 @@ const QuizApp = () => {
     return textarea.value;
   };
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -58,11 +58,11 @@ const QuizApp = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchQuestions();
-  }, []);
+  }, [fetchQuestions]);
 
   const handleAnswerSelect = (selectedAnswer) => {
     const currentQuestion = questions[currentQuestionIndex];
@@ -75,16 +75,16 @@ const QuizApp = () => {
       isCorrect,
     };
 
-    setSelectedAnswers([...selectedAnswers, answerData]);
+    setSelectedAnswers((prev) => [...prev, answerData]);
 
     if (isCorrect) {
-      setScore(score + 1);
+      setScore((prev) => prev + 1);
     }
 
     // Move to next question or complete quiz
     if (currentQuestionIndex < questions.length - 1) {
       setTimeout(() => {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
+        setCurrentQuestionIndex((prev) => prev + 1);
       }, 1000);
     } else {
       setTimeout(() => {
@@ -93,13 +93,25 @@ const QuizApp = () => {
     }
   };
 
-  const restartQuiz = () => {
+  const restartQuiz = useCallback(() => {
     setCurrentQuestionIndex(0);
     setSelectedAnswers([]);
     setQuizCompleted(false);
     setScore(0);
     fetchQuestions();
-  };
+  }, [fetchQuestions]);
+
+  // Keyboard shortcut for restarting on results
+  useEffect(() => {
+    if (!quizCompleted) return;
+    const handleKeyDown = (e) => {
+      if (e.key.toLowerCase() === "r") {
+        restartQuiz();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [quizCompleted, restartQuiz]);
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -175,6 +187,13 @@ const QuizApp = () => {
             selectedAnswer={
               selectedAnswers[currentQuestionIndex]?.selectedAnswer
             }
+            // Pass navigation controls for keyboard
+            onNext={() =>
+              setCurrentQuestionIndex((prev) =>
+                Math.min(prev + 1, questions.length - 1)
+              )
+            }
+            isLast={currentQuestionIndex === questions.length - 1}
           />
         )}
       </div>
