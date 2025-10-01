@@ -121,7 +121,15 @@ const QuizApp = () => {
   }
 
   if (quizCompleted) {
-    return <QuizResults score={score} totalQuestions={questions.length} onRestart={restartQuiz} />;
+    return (
+    <QuizResults
+      score={score}
+      totalQuestions={questions.length}
+      onRestart={restartQuiz}
+      questions={questions}             // pass questions
+      selectedAnswers={selectedAnswers} // pass selected answers
+    />
+  );
   }
 
   return (

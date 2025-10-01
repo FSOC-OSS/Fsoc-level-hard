@@ -1,4 +1,9 @@
-const QuizResults = ({ score, totalQuestions, onRestart }) => {
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const QuizResults = ({ score, totalQuestions, onRestart, questions, selectedAnswers }) => {
+  const navigate = useNavigate();
+
   const percentage = Math.round((score / totalQuestions) * 100);
   
   const getResultMessage = () => {
@@ -40,16 +45,7 @@ const QuizResults = ({ score, totalQuestions, onRestart }) => {
           {/* Progress Ring */}
           <div className="relative w-32 h-32 mx-auto mb-4">
             <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
-              {/* Background Circle */}
-              <circle
-                cx="60"
-                cy="60"
-                r="50"
-                fill="none"
-                stroke="#e5e7eb"
-                strokeWidth="8"
-              />
-              {/* Progress Circle */}
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="8" />
               <circle
                 cx="60"
                 cy="60"
@@ -94,6 +90,14 @@ const QuizResults = ({ score, totalQuestions, onRestart }) => {
             className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
           >
             🌐 More Quizzes
+          </button>
+
+          {/* ✅ Review Answers Button */}
+          <button
+            onClick={() => navigate('/review', { state: { questions, selectedAnswers } })}
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg"
+          >
+            📖 Review Answers
           </button>
         </div>
 
