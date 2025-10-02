@@ -28,3 +28,16 @@
     "vite": "^7.1.7"
   }
 }
+
+{
+  "scripts": {
+    "build:css": "tailwindcss -i src/css/input.css -o dist/css/styles.css --minify",
+    "watch:css": "tailwindcss -i src/css/input.css -o dist/css/styles.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.0.0",
+    "autoprefixer": "^10.0.0",
+    "postcss": "^8.0.0"
+  }
+}
+
