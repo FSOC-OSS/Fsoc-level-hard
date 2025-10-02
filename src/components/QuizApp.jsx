@@ -11,6 +11,8 @@ import KeyboardShortcuts from "./KeyboardShortcuts";
 import PauseOverlay from "./PauseOverlay";
 import QuizStateManager from "../utils/QuizStateManager";
 import BookmarkManager from "../utils/BookmarkManager";
+import AchievementManager from "../utils/AchievementManager";
+import AchievementNotification from "./AchievementNotification";
 
 const QuizApp = () => {
     // core quiz state
@@ -35,6 +37,10 @@ const QuizApp = () => {
     // pause/resume state
     const [isQuizPaused, setIsQuizPaused] = useState(false);
     const [quizStartTime, setQuizStartTime] = useState(null);
+
+    // achievement state
+    const [newAchievements, setNewAchievements] = useState([]);
+    const [currentStreak, setCurrentStreak] = useState(0);
 
     const decodeHtmlEntities = (text) => {
         const textarea = document.createElement("textarea");
@@ -184,6 +190,7 @@ const QuizApp = () => {
             setTimeRemaining(isTimerEnabled ? timerDuration : null);
             setIsQuizPaused(false);
             setIsTimerPaused(false);
+            setCurrentStreak(0);
 
             // Clear any previously saved state
             QuizStateManager.clearQuizState();
@@ -264,16 +271,75 @@ const QuizApp = () => {
     const handleAnswerSelect = (selectedAnswer) => {
         const currentQuestion = questions[currentQuestionIndex];
         const isCorrect = selectedAnswer === currentQuestion?.correct_answer;
+        const timeSpent =
+            isTimerEnabled && timeRemaining !== null
+                ? timerDuration - timeRemaining
+                : null;
 
         const answerData = {
             questionIndex: currentQuestionIndex,
             selectedAnswer,
             correctAnswer: currentQuestion?.correct_answer ?? null,
             isCorrect: Boolean(isCorrect),
+            timeSpent,
         };
 
         setSelectedAnswers((prev) => [...prev, answerData]);
         if (isCorrect) setScore((prev) => prev + 1);
+
+        // Update streak
+        if (isCorrect) {
+            setCurrentStreak((prev) => prev + 1);
+        } else {
+            setCurrentStreak(0);
+        }
+
+        // Check for immediate speed achievements
+        if (isCorrect && timeSpent) {
+            let speedAchievements = [];
+            if (timeSpent <= 15) {
+                const speedDemonBadge =
+                    AchievementManager.unlockAchievement("speed-demon");
+                if (speedDemonBadge) speedAchievements.push(speedDemonBadge);
+            }
+            if (timeSpent <= 30) {
+                const speedReaderBadge =
+                    AchievementManager.unlockAchievement("speed-reader");
+                if (speedReaderBadge) speedAchievements.push(speedReaderBadge);
+            }
+            if (speedAchievements.length > 0) {
+                setNewAchievements((prev) => [...prev, ...speedAchievements]);
+            }
+        }
+
+        // Update streak achievements immediately
+        const newStreak = isCorrect ? currentStreak + 1 : 0;
+        let streakAchievements = [];
+        if (isCorrect && newStreak >= 5) {
+            if (newStreak === 5) {
+                const badge =
+                    AchievementManager.unlockAchievement("streak-starter");
+                if (badge) streakAchievements.push(badge);
+            } else if (newStreak === 10) {
+                const badge = AchievementManager.unlockAchievement("on-fire");
+                if (badge) streakAchievements.push(badge);
+            } else if (newStreak === 25) {
+                const badge =
+                    AchievementManager.unlockAchievement("hot-streak");
+                if (badge) streakAchievements.push(badge);
+            } else if (newStreak === 50) {
+                const badge =
+                    AchievementManager.unlockAchievement("unstoppable");
+                if (badge) streakAchievements.push(badge);
+            } else if (newStreak === 100) {
+                const badge =
+                    AchievementManager.unlockAchievement("legendary-streak");
+                if (badge) streakAchievements.push(badge);
+            }
+        }
+        if (streakAchievements.length > 0) {
+            setNewAchievements((prev) => [...prev, ...streakAchievements]);
+        }
 
         // pause timer while moving to next
         setIsTimerPaused(true);
@@ -281,10 +347,61 @@ const QuizApp = () => {
         if (currentQuestionIndex < questions.length - 1) {
             setTimeout(() => {
                 setCurrentQuestionIndex((prev) => prev + 1);
+                setTimeRemaining(isTimerEnabled ? timerDuration : null);
                 setIsTimerPaused(false);
             }, 1000);
         } else {
-            setTimeout(() => setQuizCompleted(true), 1000);
+            setTimeout(() => {
+                // Complete quiz and check all achievements
+                const finalScore = score + (isCorrect ? 1 : 0);
+                const totalQuestions = questions.length;
+                const percentage = (finalScore / totalQuestions) * 100;
+
+                let completionAchievements = [];
+
+                // Check score-based achievements
+                if (percentage === 100) {
+                    const perfectBadge =
+                        AchievementManager.unlockAchievement("perfect-score");
+                    if (perfectBadge) completionAchievements.push(perfectBadge);
+                }
+                if (percentage >= 95) {
+                    const perfectionistBadge =
+                        AchievementManager.unlockAchievement("perfectionist");
+                    if (perfectionistBadge)
+                        completionAchievements.push(perfectionistBadge);
+                }
+                if (percentage >= 90) {
+                    const excellentBadge =
+                        AchievementManager.unlockAchievement("excellent");
+                    if (excellentBadge)
+                        completionAchievements.push(excellentBadge);
+                }
+                if (percentage >= 80) {
+                    const goodJobBadge =
+                        AchievementManager.unlockAchievement("good-job");
+                    if (goodJobBadge) completionAchievements.push(goodJobBadge);
+                }
+
+                // Update quiz completion stats and check participation achievements
+                const participationAchievements =
+                    AchievementManager.updateQuizStats({
+                        score: finalScore,
+                        totalQuestions: totalQuestions,
+                        timePerQuestion: null,
+                        wasCorrect: isCorrect,
+                    });
+
+                const allAchievements = [
+                    ...completionAchievements,
+                    ...participationAchievements,
+                ];
+                if (allAchievements.length > 0) {
+                    setNewAchievements((prev) => [...prev, ...allAchievements]);
+                }
+
+                setQuizCompleted(true);
+            }, 1000);
         }
     };
 
@@ -306,6 +423,8 @@ const QuizApp = () => {
         setIsTimerPaused(false);
         setIsQuizPaused(false);
         setTimeRemaining(null);
+        setCurrentStreak(0);
+        setNewAchievements([]);
         QuizStateManager.clearQuizState();
         fetchQuestions();
     };
@@ -354,6 +473,10 @@ const QuizApp = () => {
                     totalQuestions={questions.length}
                     onRestart={restartQuiz}
                     onBackToSetup={handleBackToSetup}
+                />
+                <AchievementNotification
+                    achievements={newAchievements}
+                    onClose={() => setNewAchievements([])}
                 />
             </>
         );
@@ -519,6 +642,11 @@ const QuizApp = () => {
                     </div>
                 )}
             </div>
+
+            <AchievementNotification
+                achievements={newAchievements}
+                onClose={() => setNewAchievements([])}
+            />
         </div>
     );
 };
