@@ -247,3 +247,5 @@ function QuizQuestion({ question, onAnswer }) {
     </div>
   );
 }
+
+export default QuizQuestion;
