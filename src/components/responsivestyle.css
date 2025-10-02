@@ -1,0 +1,80 @@
+/* CSS (Scoped or global styles) */
+`
+.badge-collection {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.badge {
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  padding: 0.5rem;
+  text-align: center;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.badge:focus, .badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 12px #4caf50;
+}
+
+.badge.earned img {
+  filter: none;
+}
+.badge.locked img {
+  filter: grayscale(90%) brightness(0.6);
+}
+
+.badge-icon {
+  width: 60px;
+  height: 60px;
+  user-select: none;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 0.6rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+  white-space: normal;
+  width: 180px;
+  z-index: 10;
+}
+
+.progress-overlay {
+  position: absolute;
+  top: 0px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.progress-ring__circle {
+  transition: stroke-dashoffset 0.35s;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.progress-text {
+  position: absolute;
+  font-weight: bold;
+  color: #4caf50;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+`
