@@ -144,4 +144,106 @@ const QuizQuestion = ({
     );
 };
 
-export default QuizQuestion;
+import React, { useState, useEffect } from 'react';
+
+// Utility to shuffle an array (Fisher-Yates)
+function shuffle(array) {
+  let arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function QuizQuestion({ question, onAnswer }) {
+  const DEFAULT_HINTS = 3;
+
+  const [hintsRemaining, setHintsRemaining] = useState(DEFAULT_HINTS);
+  const [eliminatedOptions, setEliminatedOptions] = useState(new Set());
+  const [hasAnswered, setHasAnswered] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(null);
+
+  // Load hints from localStorage on mount
+  useEffect(() => {
+    const savedHints = localStorage.getItem('quizHintsRemaining');
+    if (savedHints !== null) {
+      setHintsRemaining(Number(savedHints));
+    }
+  }, []);
+
+  // Save hints to localStorage on change
+  useEffect(() => {
+    localStorage.setItem('quizHintsRemaining', hintsRemaining.toString());
+  }, [hintsRemaining]);
+
+  // Reset state on question change
+  useEffect(() => {
+    setEliminatedOptions(new Set());
+    setHasAnswered(false);
+    setSelectedIndex(null);
+  }, [question]);
+
+  const handleUseHint = () => {
+    if (hintsRemaining === 0 || hasAnswered) return;
+
+    // Collect indices of incorrect options not already eliminated
+    const incorrectIndices = question.options
+      .map((_, idx) => idx)
+      .filter(idx => idx !== question.correctIndex && !eliminatedOptions.has(idx));
+
+    // Number of options to eliminate depends on how many incorrect remain
+    const numToEliminate = Math.min(2, incorrectIndices.length);
+
+    if (numToEliminate === 0) return; // Nothing to eliminate
+
+    const shuffled = shuffle(incorrectIndices);
+    const toEliminate = new Set([...eliminatedOptions, ...shuffled.slice(0, numToEliminate)]);
+
+    setEliminatedOptions(toEliminate);
+    setHintsRemaining(prev => prev - 1);
+  };
+
+  const handleSelectAnswer = (idx) => {
+    if (hasAnswered || eliminatedOptions.has(idx)) return;
+    setSelectedIndex(idx);
+    setHasAnswered(true);
+    onAnswer(idx === question.correctIndex);
+  };
+
+  return (
+    <div className="quiz-container">
+      <h2 className="question-text">{question.text}</h2>
+      <div className="options-container">
+        {question.options.map((option, idx) => {
+          const isEliminated = eliminatedOptions.has(idx);
+          const isSelected = idx === selectedIndex;
+          return (
+            <button
+              key={idx}
+              className={`option-btn 
+                ${isEliminated ? 'option--eliminated' : ''} 
+                ${isSelected ? (idx === question.correctIndex ? 'correct' : 'wrong') : ''}`}
+              onClick={() => handleSelectAnswer(idx)}
+              disabled={isEliminated || hasAnswered}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="hint-container">
+        <button
+          className={`hint-button ${hintsRemaining === 0 || hasAnswered ? 'disabled' : ''}`}
+          onClick={handleUseHint}
+          disabled={hintsRemaining === 0 || hasAnswered}
+          aria-label="Use 50/50 hint to eliminate two incorrect answers"
+        >
+          💡 {hintsRemaining}
+          {(hintsRemaining !== 0 && !hasAnswered) && <span className="hint-glow" />}
+        </button>
+      </div>
+    </div>
+  );
+}
