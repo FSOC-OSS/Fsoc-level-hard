@@ -143,7 +143,6 @@ const QuizQuestion = ({
         </div>
     );
 };
-
 import React, { useState, useEffect } from 'react';
 
 // Utility to shuffle an array (Fisher-Yates)
@@ -212,38 +211,66 @@ function QuizQuestion({ question, onAnswer }) {
   };
 
   return (
-    <div className="quiz-container">
-      <h2 className="question-text">{question.text}</h2>
-      <div className="options-container">
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+      <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-6 text-center leading-relaxed">
+        {question.text}
+      </h2>
+      
+      <div className="space-y-3 mb-6">
         {question.options.map((option, idx) => {
           const isEliminated = eliminatedOptions.has(idx);
           const isSelected = idx === selectedIndex;
+          const isCorrect = idx === question.correctIndex;
+          
+          let buttonClasses = "w-full p-4 text-left rounded-lg border-2 transition-all duration-200 font-medium ";
+          
+          if (isEliminated) {
+            buttonClasses += "bg-gray-100 text-gray-400 border-gray-200 opacity-50 cursor-not-allowed line-through";
+          } else if (isSelected) {
+            if (isCorrect) {
+              buttonClasses += "bg-green-100 text-green-800 border-green-300 shadow-md";
+            } else {
+              buttonClasses += "bg-red-100 text-red-800 border-red-300 shadow-md";
+            }
+          } else {
+            buttonClasses += "bg-blue-50 text-gray-700 border-blue-200 hover:bg-blue-100 hover:border-blue-300 hover:shadow-md active:transform active:scale-95";
+          }
+
           return (
             <button
               key={idx}
-              className={`option-btn 
-                ${isEliminated ? 'option--eliminated' : ''} 
-                ${isSelected ? (idx === question.correctIndex ? 'correct' : 'wrong') : ''}`}
+              className={buttonClasses}
               onClick={() => handleSelectAnswer(idx)}
               disabled={isEliminated || hasAnswered}
             >
-              {option}
+              <span className="text-sm md:text-base">{option}</span>
             </button>
           );
         })}
       </div>
 
-      <div className="hint-container">
+      <div className="flex justify-center">
         <button
-          className={`hint-button ${hintsRemaining === 0 || hasAnswered ? 'disabled' : ''}`}
+          className={`
+            relative px-6 py-3 rounded-full font-semibold text-sm md:text-base transition-all duration-200 flex items-center gap-2
+            ${hintsRemaining === 0 || hasAnswered 
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+              : 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500 hover:shadow-lg active:transform active:scale-95 animate-pulse'
+            }
+          `}
           onClick={handleUseHint}
           disabled={hintsRemaining === 0 || hasAnswered}
           aria-label="Use 50/50 hint to eliminate two incorrect answers"
         >
-          💡 {hintsRemaining}
-          {(hintsRemaining !== 0 && !hasAnswered) && <span className="hint-glow" />}
+          <span className="text-lg">💡</span>
+          <span>{hintsRemaining}</span>
+          {(hintsRemaining !== 0 && !hasAnswered) && (
+            <span className="absolute inset-0 rounded-full bg-yellow-300 opacity-30 animate-ping"></span>
+          )}
         </button>
       </div>
     </div>
   );
 }
+
+export default QuizQuestion;
