@@ -1,7 +1,42 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import AchievementManager from "../utils/AchievementManager";
+
 const QuizResults = ({ score, totalQuestions, onRestart, onBackToSetup }) => {
+    const [newlyEarnedBadges, setNewlyEarnedBadges] = useState([]);
     const percentage = Math.round((score / totalQuestions) * 100);
+
+    useEffect(() => {
+        // Get any newly earned badges for this quiz session
+        const recentAchievements = AchievementManager.getUnlockedBadges()
+            .filter((badge) => {
+                const unlockedAt = new Date(badge.unlockedAt);
+                const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+                return unlockedAt > fiveMinutesAgo;
+            })
+            .slice(0, 3); // Show max 3 recent badges
+
+        setNewlyEarnedBadges(recentAchievements);
+    }, [score, totalQuestions]);
+
+    const handleShare = () => {
+        const shareText = `I just scored ${score}/${totalQuestions} (${percentage}%) on the quiz! 🎯`;
+
+        if (navigator.share) {
+            navigator.share({
+                title: "Quiz Results",
+                text: shareText,
+                url: window.location.href,
+            });
+        } else {
+            navigator.clipboard.writeText(shareText);
+            alert("Results copied to clipboard!");
+        }
+
+        // Track sharing achievement
+        AchievementManager.updateShareStats();
+    };
 
     const getResultMessage = () => {
         if (percentage >= 90)
@@ -93,6 +128,30 @@ const QuizResults = ({ score, totalQuestions, onRestart, onBackToSetup }) => {
                     </div>
                 </div>
 
+                {/* Newly Earned Badges */}
+                {newlyEarnedBadges.length > 0 && (
+                    <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 mb-6 border border-yellow-200">
+                        <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                            🏆 New Achievements Unlocked!
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                            {newlyEarnedBadges.map((badge) => (
+                                <div
+                                    key={badge.id}
+                                    className="flex items-center bg-white rounded-lg px-3 py-2 shadow-sm"
+                                >
+                                    <span className="text-lg mr-2">
+                                        {badge.icon}
+                                    </span>
+                                    <span className="text-sm font-medium text-gray-700">
+                                        {badge.name}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4 mb-8">
                     <div className="bg-green-50 p-4 rounded-lg">
                         <div className="text-2xl font-bold text-green-600">
@@ -138,7 +197,12 @@ const QuizResults = ({ score, totalQuestions, onRestart, onBackToSetup }) => {
                     <p className="text-sm text-gray-500 mb-3">
                         Share your results:
                     </p>
-                    <button>📱 Share Score</button>
+                    <button
+                        onClick={handleShare}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                    >
+                        📱 Share Score
+                    </button>
                 </div>
             </div>
         </div>

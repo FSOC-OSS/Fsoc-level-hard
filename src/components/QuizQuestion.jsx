@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import BookmarkManager from "../utils/BookmarkManager";
+import AchievementManager from "../utils/AchievementManager";
 
 const QuizQuestion = ({
     question,
@@ -31,6 +32,11 @@ const QuizQuestion = ({
         const result = BookmarkManager.toggleBookmark(question);
         if (result.success) {
             setIsBookmarked(!isBookmarked);
+
+            // Track bookmark achievement if bookmarking (not removing)
+            if (!isBookmarked) {
+                AchievementManager.updateBookmarkStats();
+            }
         }
     };
 
