@@ -68,3 +68,38 @@ const ResetBadgesButton = ({ onReset }) => {
 };
 
 export default ResetBadgesButton;
+
+import React, { useEffect } from 'react';
+
+const BadgeNotification = ({ badge, onClose }) => {
+  // Auto close after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="badge-notification" role="alert" aria-live="assertive">
+      <img
+        src={badge.icon}
+        alt={`${badge.name} badge icon`}
+        className="badge-notification-icon"
+      />
+      <div className="badge-notification-content">
+        <strong>New Badge Earned</strong>
+        <p>{badge.name}</p>
+      </div>
+      <button
+        aria-label="Close notification"
+        className="badge-notification-close"
+        onClick={onClose}
+      >
+        ×
+      </button>
+    </div>
+  );
+};
+
+export default BadgeNotification;

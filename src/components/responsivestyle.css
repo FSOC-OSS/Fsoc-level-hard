@@ -105,3 +105,65 @@
   background-color: #3b8e40;
   box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.2);
 }
+
+/* CSS */
+`
+.badge-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #4caf50;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(76, 175, 80, 0.5);
+  animation: slideIn 0.4s ease forwards;
+  z-index: 1000;
+  max-width: 300px;
+  font-family: sans-serif;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.badge-notification-icon {
+  width: 50px;
+  height: 50px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.badge-notification-content {
+  flex-grow: 1;
+}
+
+.badge-notification-content strong {
+  font-size: 1rem;
+  display: block;
+}
+
+.badge-notification-content p {
+  margin: 2px 0 0;
+  font-size: 0.9rem;
+}
+
+.badge-notification-close {
+  background: transparent;
+  color: white;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0 8px 4px 8px;
+  line-height: 1;
+  user-select: none;
+}
