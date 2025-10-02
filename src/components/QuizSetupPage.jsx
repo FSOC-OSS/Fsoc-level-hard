@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrophy } from "@fortawesome/free-solid-svg-icons";
 import BookmarkManager from "../utils/BookmarkManager";
-import AchievementManager from "../utils/AchievementManager";
 
 const QuizSetupPage = ({ onStart }) => {
     const [numQuestions, setNumQuestions] = useState(10);
@@ -16,12 +15,6 @@ const QuizSetupPage = ({ onStart }) => {
     const [loadingTypes, setLoadingTypes] = useState(true);
     const [error, setError] = useState(null);
     const [openDropdown, setOpenDropdown] = useState(null);
-    const [overallProgress, setOverallProgress] = useState({
-        unlocked: 0,
-        total: 0,
-        percentage: 0,
-    });
-    const [recentAchievements, setRecentAchievements] = useState([]);
     const navigate = useNavigate();
 
     const difficultyOptions = ["Easy", "Medium", "Hard"];
@@ -57,20 +50,6 @@ const QuizSetupPage = ({ onStart }) => {
         setQuestionTypes(types);
         setQuestionType(types[0].value);
         setLoadingTypes(false);
-    }, []);
-
-    useEffect(() => {
-        const progress = AchievementManager.getOverallProgress();
-        setOverallProgress(progress);
-
-        const recent = AchievementManager.getUnlockedBadges()
-            .filter((badge) => {
-                const unlockedAt = new Date(badge.unlockedAt);
-                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-                return unlockedAt > oneDayAgo;
-            })
-            .slice(0, 3);
-        setRecentAchievements(recent);
     }, []);
 
     const handleStartQuiz = () => {
@@ -217,9 +196,9 @@ const QuizSetupPage = ({ onStart }) => {
                         </button>
 
                         <button
-                            onClick={() => navigate("/achievements")}
+                            onClick={() => navigate("/badges")}
                             className="bg-gradient-to-r from-purple-500 to-indigo-600 py-4 px-12 rounded-xl text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform"
-                            title="View Achievements"
+                            title="View Achievements & Badges"
                         >
                             <FontAwesomeIcon
                                 icon={faTrophy}
@@ -252,53 +231,6 @@ const QuizSetupPage = ({ onStart }) => {
                             )}
                         </button>
                     </div>
-
-                    {/* Achievement Progress */}
-                    {overallProgress.total > 0 && (
-                        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 mb-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-white">
-                                    Achievement Progress
-                                </h3>
-                                <span className="text-yellow-300 text-sm">
-                                    {overallProgress.unlocked}/
-                                    {overallProgress.total}
-                                </span>
-                            </div>
-                            <div className="relative w-full h-2 bg-white/20 rounded-full overflow-hidden mb-4">
-                                <div
-                                    className="absolute left-0 top-0 h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full transition-all duration-500"
-                                    style={{
-                                        width: `${overallProgress.percentage}%`,
-                                    }}
-                                ></div>
-                            </div>
-                            {recentAchievements.length > 0 && (
-                                <div>
-                                    <p className="text-purple-100 text-sm mb-2">
-                                        Recent Achievements:
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {recentAchievements.map(
-                                            (achievement) => (
-                                                <div
-                                                    key={achievement.id}
-                                                    className="flex items-center bg-white/20 rounded-lg px-3 py-1"
-                                                >
-                                                    <span className="text-lg mr-2">
-                                                        {achievement.icon}
-                                                    </span>
-                                                    <span className="text-white text-sm font-medium">
-                                                        {achievement.name}
-                                                    </span>
-                                                </div>
-                                            ),
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
 
                     {/* Quick Settings */}
                     <QuickSettings

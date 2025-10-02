@@ -1,145 +1,138 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 
-const AchievementNotification = ({ achievements = [], onClose }) => {
-    const [isVisible, setIsVisible] = useState(false);
-    const [currentIndex, setCurrentIndex] = useState(0);
+const AchievementNotification = ({ badges, onClose, onViewAll }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [currentBadgeIndex, setCurrentBadgeIndex] = useState(0);
 
-    useEffect(() => {
-        if (achievements.length > 0) {
-            setIsVisible(true);
-            setCurrentIndex(0);
-        }
-    }, [achievements]);
+  useEffect(() => {
+    if (badges && badges.length > 0) {
+      setIsVisible(true);
+      setCurrentBadgeIndex(0);
 
-    const handleClose = () => {
+      const timer = setTimeout(() => {
         setIsVisible(false);
         setTimeout(() => {
+          if (currentBadgeIndex < badges.length - 1) {
+            setCurrentBadgeIndex(prev => prev + 1);
+          } else {
             onClose();
+          }
         }, 300);
-    };
+      }, 4000);
 
-    const nextAchievement = () => {
-        if (currentIndex < achievements.length - 1) {
-            setCurrentIndex(currentIndex + 1);
-        } else {
-            handleClose();
-        }
-    };
-
-    const prevAchievement = () => {
-        if (currentIndex > 0) {
-            setCurrentIndex(currentIndex - 1);
-        }
-    };
-
-    if (!achievements.length || !isVisible) {
-        return null;
+      return () => clearTimeout(timer);
     }
+  }, [badges, currentBadgeIndex, onClose]);
 
-    const currentAchievement = achievements[currentIndex];
+  if (!badges || badges.length === 0) return null;
 
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div
-                className={`bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full text-center transform transition-all duration-300 border-2 border-yellow-500 ${
-                    isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
-                }`}
-            >
-                {/* Header */}
-                <div className="flex items-center justify-center mb-6">
-                    <div className="text-3xl mr-3 animate-bounce">🏆</div>
-                    <h2 className="text-2xl font-bold text-white">
-                        New Achievements Unlocked!
-                    </h2>
-                </div>
+  const currentBadge = badges[currentBadgeIndex];
 
-                {/* Achievement Card */}
-                <div className="bg-gray-800 rounded-xl p-6 mb-6 border border-gray-700">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center">
-                            <div className="text-4xl mr-3">{currentAchievement.icon}</div>
-                            <div className="text-left">
-                                <h3 className="text-xl font-bold text-white">
-                                    {currentAchievement.name}
-                                </h3>
-                                <p className="text-gray-400 text-sm">
-                                    {currentAchievement.description}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">
-                            New!
-                        </div>
-                    </div>
-                </div>
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div
+        className={`
+          relative max-w-md w-full transform transition-all duration-500 ease-out
+          ${isVisible ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-8'}
+        `}
+      >
+        {/* Animated Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-2xl animate-pulse" />
+        <div className="absolute inset-1 bg-gray-900 rounded-xl" />
 
-                {/* Progress Indicator */}
-                {achievements.length > 1 && (
-                    <div className="flex justify-center mb-6">
-                        <div className="flex space-x-2">
-                            {achievements.map((_, index) => (
-                                <div
-                                    key={index}
-                                    className={`w-2 h-2 rounded-full transition-colors duration-200 ${
-                                        index === currentIndex
-                                            ? 'bg-yellow-500'
-                                            : 'bg-gray-600'
-                                    }`}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
+        {/* Content */}
+        <div className="relative p-8 text-center">
+          {/* Header */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="text-2xl animate-bounce">🏆</div>
+            <h2 className="text-2xl font-bold text-white">
+              New Achievement Unlocked!
+            </h2>
+          </div>
 
-                {/* Navigation Buttons */}
-                <div className="flex justify-between items-center">
-                    {achievements.length > 1 ? (
-                        <>
-                            <button
-                                onClick={prevAchievement}
-                                disabled={currentIndex === 0}
-                                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                                    currentIndex === 0
-                                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                                        : 'bg-gray-700 text-white hover:bg-gray-600'
-                                }`}
-                            >
-                                Previous
-                            </button>
-
-                            <span className="text-gray-400 text-sm">
-                                {currentIndex + 1} of {achievements.length}
-                            </span>
-
-                            <button
-                                onClick={nextAchievement}
-                                className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-all duration-200"
-                            >
-                                {currentIndex === achievements.length - 1 ? 'Close' : 'Next'}
-                            </button>
-                        </>
-                    ) : (
-                        <button
-                            onClick={handleClose}
-                            className="w-full px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-all duration-200"
-                        >
-                            Awesome!
-                        </button>
-                    )}
-                </div>
-
-                {/* Close Button */}
-                <button
-                    onClick={handleClose}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+          {/* Badge Display */}
+          <div className="mb-6">
+            <div className="text-6xl mb-4 animate-bounce">
+              {currentBadge.icon}
             </div>
+            <div className="bg-gray-800 rounded-lg p-4 mb-4">
+              <h3 className="text-xl font-bold text-white mb-2">
+                {currentBadge.name}
+              </h3>
+              <p className="text-gray-300 text-sm">
+                {currentBadge.description}
+              </p>
+            </div>
+
+            {/* New Badge Indicator */}
+            <div className="inline-flex items-center gap-2 bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+              New!
+            </div>
+          </div>
+
+          {/* Badge Counter */}
+          {badges.length > 1 && (
+            <div className="mb-6">
+              <div className="flex justify-center gap-2 mb-2">
+                {badges.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                      index === currentBadgeIndex ? 'bg-orange-500' : 'bg-gray-600'
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-gray-400 text-sm">
+                {currentBadgeIndex + 1} of {badges.length} new achievements
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            {badges.length > 1 && currentBadgeIndex < badges.length - 1 && (
+              <button
+                onClick={() => {
+                  setIsVisible(false);
+                  setTimeout(() => setCurrentBadgeIndex(prev => prev + 1), 300);
+                }}
+                className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+              >
+                Next Achievement →
+              </button>
+            )}
+
+            <button
+              onClick={onViewAll}
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+            >
+              View All Achievements
+            </button>
+
+            <button
+              onClick={onClose}
+              className="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 font-medium py-2 px-6 rounded-lg transition-colors duration-200"
+            >
+              Continue Quiz
+            </button>
+          </div>
         </div>
-    );
+
+        {/* Animated Sparkles */}
+        <div className="absolute -top-4 -right-4">
+          <div className="text-yellow-400 text-2xl animate-ping">✨</div>
+        </div>
+        <div className="absolute -bottom-4 -left-4">
+          <div className="text-yellow-400 text-xl animate-ping animation-delay-300">⭐</div>
+        </div>
+        <div className="absolute top-1/2 -right-6">
+          <div className="text-orange-400 text-lg animate-ping animation-delay-600">💫</div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default AchievementNotification;
