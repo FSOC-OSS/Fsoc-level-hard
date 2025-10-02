@@ -56,3 +56,15 @@ const BadgeCollection = () => {
 };
 
 export default BadgeCollection;
+
+import React from 'react';
+
+const ResetBadgesButton = ({ onReset }) => {
+  return (
+    <button className="reset-badges-button" onClick={onReset} aria-label="Reset all badges">
+      Reset All Badges
+    </button>
+  );
+};
+
+export default ResetBadgesButton;
