@@ -28,7 +28,6 @@ const QuizApp = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-
     // ---------- Quiz Setup State ----------
     const [showSetup, setShowSetup] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState("");
@@ -38,6 +37,7 @@ const QuizApp = () => {
     const [isTimerEnabled, setIsTimerEnabled] = useState(true);
     const [isTimerPaused, setIsTimerPaused] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState(null);
+    const [timerVersion, setTimerVersion] = useState(0);
 
     // ---------- Pause State ----------
     const [isQuizPaused, setIsQuizPaused] = useState(false);
@@ -180,6 +180,7 @@ const QuizApp = () => {
             setQuizCompleted(false);
             setScore(0);
             setTimeRemaining(isTimerEnabled ? timerDuration : null);
+            setTimerVersion(0);
             setIsQuizPaused(false);
             setIsTimerPaused(false);
             setIsResultAnnouncementComplete(false);
@@ -269,6 +270,8 @@ const QuizApp = () => {
             const moveToNext = () => {
                 if (currentQuestionIndex < questions.length - 1) {
                     setCurrentQuestionIndex((prev) => prev + 1);
+                    setTimeRemaining(isTimerEnabled ? timerDuration : null);
+                    setTimerVersion((prev) => prev + 1);
                     setIsTimerPaused(false);
                     setIsResultAnnouncementComplete(false);
                 } else {
@@ -290,13 +293,15 @@ const QuizApp = () => {
                     });
                 }
             };
-            setTimeout(moveToNext, 300);
+            setTimeout(moveToNext, 150);
         }
     }, [
         isResultAnnouncementComplete,
         currentQuestionIndex,
         questions.length,
         selectedAnswers,
+        isTimerEnabled,
+        timerDuration,
     ]);
 
     // ---------- Timer callbacks ----------
@@ -318,6 +323,7 @@ const QuizApp = () => {
         setIsQuizPaused(false);
         setIsTimerPaused(false);
         setTimeRemaining(null);
+        setTimerVersion(0);
         setQuizStartTime(null);
         setShowSetup(true);
     }, []);
@@ -328,8 +334,11 @@ const QuizApp = () => {
         setSelectedAnswers([]);
         setQuizCompleted(false);
         setScore(0);
+        setTimeRemaining(isTimerEnabled ? timerDuration : null);
+        setTimerVersion(0);
         setIsTimerPaused(false);
         setIsResultAnnouncementComplete(false);
+        setQuizStartTimestamp(Date.now());
         fetchQuestions();
     };
 
@@ -369,7 +378,7 @@ const QuizApp = () => {
         return (
             <QuizReviewWrapper
                 questions={questions}
-                userAnswers={selectedAnswers.map(a => a.selectedAnswer)}
+                userAnswers={selectedAnswers.map((a) => a.selectedAnswer)}
                 onBack={() => setReviewMode(false)}
             />
         );
@@ -386,8 +395,14 @@ const QuizApp = () => {
                     questions={questions}
                     userAnswers={selectedAnswers} // Make sure this matches your state variable name
                     quizData={{
-                        timeSpent: quizStartTimestamp ? (Date.now() - quizStartTimestamp) / 1000 : 0,
-                        averageTimePerQuestion: quizStartTimestamp ? ((Date.now() - quizStartTimestamp) / 1000) / questions.length : 30
+                        timeSpent: quizStartTimestamp
+                            ? (Date.now() - quizStartTimestamp) / 1000
+                            : 0,
+                        averageTimePerQuestion: quizStartTimestamp
+                            ? (Date.now() - quizStartTimestamp) /
+                              1000 /
+                              questions.length
+                            : 30,
                     }}
                 />
             </>
@@ -427,10 +442,11 @@ const QuizApp = () => {
                         <button
                             onClick={handlePauseToggle}
                             disabled={quizCompleted}
-                            className={`flex items-center justify-center w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 hover:border-white/40 ${quizCompleted
-                                ? "opacity-50 cursor-not-allowed"
-                                : "cursor-pointer"
-                                }`}
+                            className={`flex items-center justify-center w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 hover:border-white/40 ${
+                                quizCompleted
+                                    ? "opacity-50 cursor-not-allowed"
+                                    : "cursor-pointer"
+                            }`}
                             aria-label={
                                 isQuizPaused ? "Resume quiz" : "Pause quiz"
                             }
@@ -476,7 +492,7 @@ const QuizApp = () => {
                             showWarningAt={10}
                             initialTimeRemaining={timeRemaining}
                             onTimeUpdate={setTimeRemaining}
-                            key={`timer-${currentQuestionIndex}`}
+                            key={`timer-${currentQuestionIndex}-${timerVersion}`}
                         />
                     </div>
                 )}
