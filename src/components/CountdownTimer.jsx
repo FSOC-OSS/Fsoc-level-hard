@@ -1,4 +1,3 @@
-// CountdownTimer.jsx - Merged version with voice integration
 import { useState, useEffect, useRef } from "react";
 
 const CountdownTimer = ({
@@ -12,100 +11,67 @@ const CountdownTimer = ({
     initialTimeRemaining = null,
     onTimeUpdate = null,
 }) => {
-    const [timeRemaining, setTimeRemaining] = useState(initialTimeRemaining || duration);
+    const [timeRemaining, setTimeRemaining] = useState(
+        initialTimeRemaining || duration,
+    );
     const [isRunning, setIsRunning] = useState(false);
     const intervalRef = useRef(null);
     const hasWarningFired = useRef(false);
     const hasTimeUpFired = useRef(false);
 
-    // Reset timer on props change
     useEffect(() => {
-        if (isRunning && timeRemaining > 0) {
-            intervalRef.current = setInterval(() => {
-                setTimeRemaining((prev) => {
-                    const newTime = prev - 1;
-
-                    // onTimeUpdate callback - use setTimeout to avoid setState during render
-                    if (onTimeUpdate) {
-                        setTimeout(() => onTimeUpdate(newTime), 0);
-                    }
-
-                    // Warning callback
-                    if (newTime === showWarningAt && !hasWarningFired.current && onWarning) {
-                        hasWarningFired.current = true;
-                        onWarning();
-                    }
-
-                    // Time up logic
-                    if (newTime <= 0) {
-                        setIsRunning(false);
-
-                        if (!hasTimeUpFired.current) {
-                            hasTimeUpFired.current = true;
-
-                            // Global handler for QuizQuestion
-                            if (typeof window !== "undefined" && window.quizQuestionHandleTimeOut) {
-                                window.quizQuestionHandleTimeOut();
-                            }
-
-                            // onTimeUp callback
-                            if (onTimeUp) onTimeUp();
-                        }
-
-                        return 0;
-                    }
-
-                    return newTime;
-                });
-            }, 1000);
-        } else if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
+        const newTime =
+            initialTimeRemaining !== null ? initialTimeRemaining : duration;
+        setTimeRemaining(newTime);
+        hasWarningFired.current = false;
+        hasTimeUpFired.current = false;
+        if (isActive && !isPaused && newTime > 0) {
+            setIsRunning(true);
+        } else {
+            setIsRunning(false);
         }
+    }, [duration, initialTimeRemaining, isActive, isPaused]);
 
-        return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-        };
-    }, [isRunning, timeRemaining, onTimeUp, showWarningAt, onWarning, onTimeUpdate]);
-
-    // Pause/resume logic
     useEffect(() => {
         if (isPaused) {
             setIsRunning(false);
-        } else if (isActive && timeRemaining > 0) {
+        } else if (isActive && timeRemaining > 0 && !hasTimeUpFired.current) {
             setIsRunning(true);
         }
     }, [isPaused, isActive, timeRemaining]);
 
-    // Main countdown interval
     useEffect(() => {
         if (isRunning && timeRemaining > 0) {
             intervalRef.current = setInterval(() => {
                 setTimeRemaining((prev) => {
                     const newTime = prev - 1;
 
-                    // onTimeUpdate callback
-                    if (onTimeUpdate) onTimeUpdate(newTime);
+                    if (onTimeUpdate) {
+                        setTimeout(() => onTimeUpdate(newTime), 0);
+                    }
 
-                    // Warning callback
-                    if (newTime === showWarningAt && !hasWarningFired.current && onWarning) {
+                    if (
+                        newTime === showWarningAt &&
+                        !hasWarningFired.current &&
+                        onWarning
+                    ) {
                         hasWarningFired.current = true;
                         onWarning();
                     }
 
-                    // Time up logic
                     if (newTime <= 0) {
                         setIsRunning(false);
 
                         if (!hasTimeUpFired.current) {
                             hasTimeUpFired.current = true;
 
-                            // Global handler for QuizQuestion
-                            if (typeof window !== "undefined" && window.quizQuestionHandleTimeOut) {
+                            if (
+                                typeof window !== "undefined" &&
+                                window.quizQuestionHandleTimeOut
+                            ) {
                                 window.quizQuestionHandleTimeOut();
                             }
 
-                            // onTimeUp callback
                             if (onTimeUp) onTimeUp();
                         }
 
@@ -123,7 +89,14 @@ const CountdownTimer = ({
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, [isRunning, timeRemaining, onTimeUp, showWarningAt, onWarning, onTimeUpdate]);
+    }, [
+        isRunning,
+        timeRemaining,
+        onTimeUp,
+        showWarningAt,
+        onWarning,
+        onTimeUpdate,
+    ]);
 
     const progressPercentage = (timeRemaining / duration) * 100;
 
@@ -162,10 +135,14 @@ const CountdownTimer = ({
     return (
         <div className={`w-full ${className}`}>
             <div className="flex items-center justify-center gap-3 mb-4">
-                <div className={`text-2xl transition-colors duration-300 ${getTimerColor()}`}>
+                <div
+                    className={`text-2xl transition-colors duration-300 ${getTimerColor()}`}
+                >
                     {isPaused ? "⏸️" : "⏱️"}
                 </div>
-                <span className={`text-xl font-bold transition-colors duration-300 ${getTimerColor()}`}>
+                <span
+                    className={`text-xl font-bold transition-colors duration-300 ${getTimerColor()}`}
+                >
                     {isPaused ? "Timer Paused: " : "Time Remaining: "}
                     {formatTime(timeRemaining)}
                 </span>
@@ -187,7 +164,9 @@ const CountdownTimer = ({
                 </div>
 
                 {timeRemaining <= showWarningAt && !isPaused && (
-                    <div className={`absolute inset-0 rounded-full animate-pulse ${getProgressBarColor()} opacity-30`}></div>
+                    <div
+                        className={`absolute inset-0 rounded-full animate-pulse ${getProgressBarColor()} opacity-30`}
+                    ></div>
                 )}
 
                 {isPaused && (

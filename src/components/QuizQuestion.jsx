@@ -58,14 +58,14 @@ const QuizQuestion = ({
         setIsBookmarked(BookmarkManager.isBookmarked(questionId));
         setHintsUsed(0);
         setShowHint(false);
-    }, [question]);
+    }, [question, stopSpeaking, setTranscript]);
 
     // Show result when answer selected or timed out
     useEffect(() => {
         if ((selectedAnswer || clickedAnswer || isTimedOut) && !showResult) {
             setShowResult(true);
         }
-    }, [selectedAnswer, clickedAnswer, isTimedOut]);
+    }, [selectedAnswer, clickedAnswer, isTimedOut, showResult]);
 
     // Handle answer click
     const handleAnswerClick = (answer) => {
@@ -84,13 +84,20 @@ const QuizQuestion = ({
         onAnswerSelect(answer);
     };
 
-    // Timer expired
-    const handleTimeOut = () => {
-        if (!selectedAnswer && !clickedAnswer) {
-            setIsTimedOut(true);
-            onAnswerSelect(null);
-        }
-    };
+    // Timer expired - exposed globally for CountdownTimer
+    useEffect(() => {
+        const handleTimeOut = () => {
+            if (!selectedAnswer && !clickedAnswer) {
+                setIsTimedOut(true);
+                onAnswerSelect(null);
+            }
+        };
+
+        window.quizQuestionHandleTimeOut = handleTimeOut;
+        return () => {
+            window.quizQuestionHandleTimeOut = null;
+        };
+    }, [selectedAnswer, clickedAnswer, onAnswerSelect]);
 
     // Hint system
     const handleHintRequest = () => {
@@ -162,6 +169,8 @@ const QuizQuestion = ({
         isTimedOut,
         question,
         hasResultBeenAnnounced,
+        speak,
+        onResultAnnounced,
     ]);
 
     // Button classes
