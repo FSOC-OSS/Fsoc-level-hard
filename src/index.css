@@ -208,3 +208,42 @@ input[type="range"]::-moz-range-thumb:hover {
     opacity: 0;
     transition: all 0.3s ease-in;
 }
+
+/* Theme utility overrides */
+:root {
+    --bg-grad-from: #7c3aed;
+    --bg-grad-to: #2563eb;
+    --card-bg: 255,255,255;
+    --text: #111827;
+    --muted: #6b7280;
+}
+
+.theme-dark {
+    --bg-grad-from: #0f172a;
+    --bg-grad-to: #0b1220;
+    --card-bg: 11,17,32;
+    --text: #e6edf3;
+    --muted: #9ca3af;
+}
+
+/* Make common utility classes use variables */
+body {
+    background: linear-gradient(135deg, var(--bg-grad-from), var(--bg-grad-to));
+    color: var(--text);
+}
+
+.bg-white { background-color: rgb(var(--card-bg)) !important; }
+.bg-white\/20 { background-color: rgba(var(--card-bg), 0.2) !important; }
+.text-white { color: var(--text) !important; }
+.text-gray-800 { color: var(--text) !important; }
+.text-gray-600 { color: var(--muted) !important; }
+.bg-gray-50 { background-color: rgba(255,255,255,0.04) !important; }
+
+.ring-black { box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important; }
+
+/* Buttons that used gradients should adopt theme colors */
+.bg-gradient-to-r.from-purple-600\:to-blue-600 { background-image: linear-gradient(90deg, var(--bg-grad-from), var(--bg-grad-to)) !important; }
+
+/* Transitions */
+* { transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease; }
+

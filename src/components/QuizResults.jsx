@@ -229,6 +229,13 @@ const QuizResults = ({
                                 strokeDasharray={`${(percentage / 100) * 314} 314`}
                                 className="transition-all duration-1000 ease-out"
                             />
+                    <div className="text-6xl font-bold text-gray-800 mb-2">{score}/{totalQuestions}</div>
+                    <div className="text-xl text-gray-600 mb-4">{percentage}% Correct</div>
+
+                    <div className="relative w-32 h-32 mx-auto mb-4">
+                        <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="8" />
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="#8b5cf6" strokeWidth="8" strokeLinecap="round" strokeDasharray={`${(percentage / 100) * 314} 314`} className="transition-all duration-1000 ease-out" />
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
                             <span className="text-2xl font-bold text-purple-600">{percentage}%</span>
@@ -288,6 +295,35 @@ const QuizResults = ({
                         🌐 More Quizzes
                     </button>
                 </div>
+                        <div className="text-2xl font-bold text-red-600">{totalQuestions - score}</div>
+                        <div className="text-sm text-red-700">Incorrect</div>
+                    </div>
+                </div>
+
+                <div className="space-y-3 mb-8">
+                    <button onClick={onRestart} className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg" data-quiz-restart="true">🔄 Try Again</button>
+
+                    <button onClick={onBackToSetup} className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg">⚙️ Back to Setup</button>
+
+                    <button onClick={() => window.open("https://opentdb.com/", "_blank")} className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition-colors duration-200">🌐 More Quizzes</button>
+                </div>
+
+                <div className="mt-6">
+                    <p className="text-sm text-gray-500 mb-3">Share your results:</p>
+                </div>
+
+                <div className="space-y-3">
+                    <button onClick={handleDownloadPDF} className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg">📄 Download PDF</button>
+
+                    <button onClick={handleShareTwitter} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg">🐦 Share on Twitter</button>
+
+                    <button onClick={handleShareFacebook} className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg">📘 Share on Facebook</button>
+
+                    <button onClick={handleCopyLink} className="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-4 px-6 rounded-lg transition-colors duration-200">🔗 Copy Shareable Link</button>
+                </div>
+            </div>
+        </div>
+    );
     // If showing review, render QuizReview component
     if (showReview) {
         return (

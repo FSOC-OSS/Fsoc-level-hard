@@ -8,6 +8,19 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Apply theme before React loads to avoid FOUC
+      (function(){
+        try{
+          var key = 'app_theme_preference';
+          var pref = null;
+          try { pref = localStorage.getItem(key); } catch(e) { pref = null; }
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var useDark = (pref === 'dark') || (pref === 'system' && prefersDark) || (!pref && prefersDark);
+          if(useDark) document.documentElement.classList.add('theme-dark');
+        }catch(e){/* ignore */}
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
