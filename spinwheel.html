@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz with Bonus Wheel</title>
+<style>
+body { font-family: Arial, sans-serif; background: #6b5b95; color: white; text-align:center; }
+#quiz-container { margin-top:50px; }
+#wheel-container { display:none; position: relative; width: 300px; height:300px; margin: 30px auto; }
+#pointer {
+  position: absolute; top:10px; left: 50%;
+  width: 0; height: 0; border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-bottom: 30px solid red;
+  transform: translateX(-50%) rotate(180deg);
+  z-index: 10;
+}
+canvas { border:2px solid #fff; border-radius:50%; }
+button { padding:10px 20px; margin:10px; font-size:16px; cursor:pointer; }
+#reward { font-size:18px; margin-top:20px; color:yellow; }
+#history { margin-top:10px; font-size:14px; color:white; }
+</style>
+</head>
+<body>
+
+<h1>Quiz Game</h1>
+<div id="quiz-container"></div>
+
+<div id="wheel-container">
+  <canvas id="wheelCanvas" width="300" height="300"></canvas>
+  <div id="pointer"></div>
+</div>
+
+<p id="finalScore">Final Score: 0</p>
+<p id="reward"></p>
+<div id="history">History: </div>
+
+<script>
+// Quiz setup
+const quizQuestions = [
+  {q:"Question 1: 2+2=?", options:[4,5,3], answer:4},
+  {q:"Question 2: Capital of France?", options:["Paris","Rome","Berlin"], answer:"Paris"},
+  {q:"Question 3: 5*3=?", options:[8,15,12], answer:15}
+];
+
+let currentQuestion = 0;
+let quizScore = 0;
+
+const quizContainer = document.getElementById("quiz-container");
+const finalScoreText = document.getElementById("finalScore");
+const rewardText = document.getElementById("reward");
+const historyDiv = document.getElementById("history");
+
+function updateScore() {
+  finalScoreText.textContent = "Final Score: " + quizScore;
+}
+
+function showQuestion(){
+  if(currentQuestion>=quizQuestions.length){
+    endQuiz();
+    return;
+  }
+  const qObj = quizQuestions[currentQuestion];
+  quizContainer.innerHTML = `<p>${qObj.q}</p>`;
+  qObj.options.forEach(opt=>{
+    const btn = document.createElement("button");
+    btn.textContent = opt;
+    btn.onclick=()=>checkAnswer(opt);
+    quizContainer.appendChild(btn);
+  });
+}
+
+function checkAnswer(selected){
+  const correct = quizQuestions[currentQuestion].answer;
+  if(selected===correct) {
+    quizScore += 100; // 100 points per correct answer
+    updateScore();
+  }
+  currentQuestion++;
+  showQuestion();
+}
+
+function endQuiz(){
+  quizContainer.style.display="none";
+  document.getElementById("wheel-container").style.display="block";
+  updateScore();
+  drawWheel();
+}
+
+// Bonus wheel setup
+const canvas = document.getElementById("wheelCanvas");
+const ctx = canvas.getContext("2d");
+let spinning=false;
+let currentRotation=0;
+
+// More arcs for bonus points than hints/time
+const rewards = [
+  {name:"10 Bonus Points", value:10, type:"points", color:"#f87171"},
+  {name:"20 Bonus Points", value:20, type:"points", color:"#60a5fa"},
+  {name:"10 Bonus Points", value:10, type:"points", color:"#f87171"},
+  {name:"Hint", value:0, type:"hint", color:"#fbbf24"},
+  {name:"10 Bonus Points", value:10, type:"points", color:"#60a5fa"},
+  {name:"Extra Time +30s", value:0, type:"time", color:"#34d399"},
+  {name:"20 Bonus Points", value:20, type:"points", color:"#f87171"},
+  {name:"10 Bonus Points", value:10, type:"points", color:"#60a5fa"}
+];
+
+const centerX=canvas.width/2;
+const centerY=canvas.height/2;
+const radius=140;
+
+function drawWheel(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const segmentAngle = 2*Math.PI/rewards.length;
+  for(let i=0;i<rewards.length;i++){
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius,i*segmentAngle,(i+1)*segmentAngle);
+    ctx.closePath();
+    ctx.fillStyle = rewards[i].color;
+    ctx.fill();
+    ctx.strokeStyle="#333";
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    const angle=i*segmentAngle + segmentAngle/2;
+    ctx.rotate(angle);
+    ctx.textAlign="right";
+    ctx.fillStyle="#000";
+    ctx.font="12px Arial";
+    ctx.fillText(rewards[i].name,radius-10,5);
+    ctx.restore();
+  }
+}
+drawWheel();
+
+// Spin function
+function spinWheel(){
+  if(spinning) return;
+  spinning=true;
+
+  const segmentAngle = 360/rewards.length;
+  const rewardIndex = Math.floor(Math.random()*rewards.length);
+  const randomExtra = Math.random()*segmentAngle;
+  const rotateDegree = 360*5 + rewardIndex*segmentAngle + randomExtra;
+
+  currentRotation += rotateDegree;
+  canvas.style.transition="transform 4s cubic-bezier(0.33,1,0.68,1)";
+  canvas.style.transform=`rotate(${currentRotation}deg)`;
+
+  setTimeout(()=>{
+    const normalized = currentRotation % 360;
+    const adjusted = (normalized+90)%360; // align pointer
+    const index = rewards.length - 1 - Math.floor(adjusted/segmentAngle);
+    const reward = rewards[index];
+
+    // Apply reward
+    if(reward.type==="points") quizScore += reward.value;
+    else if(reward.type==="time") alert("Extra 30s added!");
+    else if(reward.type==="hint") alert("You got a hint!");
+
+    updateScore();
+    rewardText.textContent="You won: "+reward.name;
+
+    // Update history
+    const history = historyDiv.dataset.history ? JSON.parse(historyDiv.dataset.history) : [];
+    history.push(reward.name);
+    historyDiv.dataset.history = JSON.stringify(history);
+    historyDiv.textContent="History: "+history.join(", ");
+
+    spinning=false;
+  },4000);
+}
+
+// Add spin button
+const spinBtn=document.createElement("button");
+spinBtn.textContent="Spin for Bonus!";
+spinBtn.onclick=spinWheel;
+document.getElementById("wheel-container").appendChild(spinBtn);
+
+// Start first question
+showQuestion();
+</script>
+
+</body>
+</html>
