@@ -1,9 +1,14 @@
 "use client";
 
 import { jsPDF } from "jspdf";
+import { useEffect, useState } from "react";
+import BadgeManager from "../utils/BadgeManager";
 
-const QuizResults = ({ score, totalQuestions, onRestart, onBackToSetup }) => {
+const QuizResults = ({ score, totalQuestions, baseScore = 0, bonusScore = 0, bestStreak = 0, streakEvents = [], onRestart, onBackToSetup }) => {
     const percentage = Math.round((score / totalQuestions) * 100);
+    const [showAchievements, setShowAchievements] = useState(false);
+    const [newBadges, setNewBadges] = useState([]);
+    const quizData = { timeSpent: 0, averageTimePerQuestion: 0 };
 
     useEffect(() => {
         BadgeManager.initializeBadgeSystem();
@@ -161,15 +166,26 @@ const handleDownloadPDF = () => {
 
                 <h2 className="text-3xl font-bold text-gray-800 mb-2">Quiz Complete!</h2>
 
-                    <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                        Quiz Complete!
-                    </h2>
-
                 <div className="bg-gray-50 rounded-xl p-6 mb-8">
                     <div className="text-6xl font-bold text-gray-800 mb-2">
                         {score}/{totalQuestions}
                     </div>
                     <div className="text-xl text-gray-600 mb-4">{percentage}% Correct</div>
+
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="p-3 rounded-lg bg-white border">
+                            <div className="text-gray-500">Base Points</div>
+                            <div className="text-xl font-bold text-gray-800">{baseScore}</div>
+                        </div>
+                        <div className="p-3 rounded-lg bg-white border">
+                            <div className="text-gray-500">Bonus Points</div>
+                            <div className="text-xl font-bold text-green-600">+{bonusScore}</div>
+                        </div>
+                        <div className="p-3 rounded-lg bg-white border col-span-2">
+                            <div className="text-gray-500">Best Streak</div>
+                            <div className="text-xl font-bold text-orange-600">🔥 {bestStreak}x</div>
+                        </div>
+                    </div>
 
                     <div className="relative w-32 h-32 mx-auto mb-4">
                         <svg
@@ -199,7 +215,26 @@ const handleDownloadPDF = () => {
                         <div className="absolute inset-0 flex items-center justify-center">
                             <span className="text-2xl font-bold text-purple-600">{percentage}%</span>
                         </div>
+                    </div>
+
+                    {streakEvents && streakEvents.length > 0 && (
+                        <div className="text-left mt-4">
+                            <div className="font-semibold text-gray-700 mb-2">Streak Highlights</div>
+                            <ul className="space-y-1 max-h-32 overflow-auto pr-2">
+                                {streakEvents.map((e, i) => (
+                                    <li key={i} className="text-sm text-gray-600">
+                                        {e.type === "milestone" ? (
+                                            <span>🔥 Reached {e.value}x at Q{(e.index ?? 0) + 1}</span>
+                                        ) : (
+                                            <span>⚡ Streak broke at {e.value}x on Q{(e.index ?? 0) + 1}</span>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     )}
+
+                </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-8">
                     <div className="bg-green-50 p-4 rounded-lg">
@@ -211,7 +246,7 @@ const handleDownloadPDF = () => {
                             {totalQuestions - score}
                         </div>
                     </div>
-
+                </div>
                 <div className="space-y-3 mb-8">
                     <button
                         onClick={onRestart}
@@ -270,9 +305,8 @@ const handleDownloadPDF = () => {
                     </button>
                 </div>
 
-               
             </div>
-        </>
+        </div>
     );
 };
 

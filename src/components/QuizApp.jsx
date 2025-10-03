@@ -9,9 +9,11 @@ import CountdownTimer from "./CountdownTimer";
 import TimerSettings from "./TimerSettings";
 import KeyboardShortcuts from "./KeyboardShortcuts";
 import PauseOverlay from "./PauseOverlay";
+import StreakHeatmap from "./StreakHeatmap";
 import QuizStateManager from "../utils/QuizStateManager";
 import BookmarkManager from "../utils/BookmarkManager";
 import BadgeManager from "../utils/BadgeManager";
+import StreakManager from "../utils/StreakManager";
 
 const QuizApp = () => {
     // ---------- Core Quiz State ----------
@@ -20,6 +22,12 @@ const QuizApp = () => {
     const [selectedAnswers, setSelectedAnswers] = useState([]);
     const [quizCompleted, setQuizCompleted] = useState(false);
     const [score, setScore] = useState(0);
+    const [baseScore, setBaseScore] = useState(0);
+    const [bonusScore, setBonusScore] = useState(0);
+    const [currentStreak, setCurrentStreak] = useState(0);
+    const [bestStreak, setBestStreak] = useState(0);
+    const [streakEvents, setStreakEvents] = useState([]);
+    const [bonusPop, setBonusPop] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -65,6 +73,11 @@ const QuizApp = () => {
             currentQuestionIndex,
             selectedAnswers,
             score,
+            baseScore,
+            bonusScore,
+            currentStreak,
+            bestStreak,
+            streakEvents,
             timeRemaining,
             timerDuration,
             isTimerEnabled,
@@ -78,6 +91,11 @@ const QuizApp = () => {
         currentQuestionIndex,
         selectedAnswers,
         score,
+        baseScore,
+        bonusScore,
+        currentStreak,
+        bestStreak,
+        streakEvents,
         timeRemaining,
         timerDuration,
         isTimerEnabled,
@@ -93,6 +111,11 @@ const QuizApp = () => {
         setCurrentQuestionIndex(savedState.currentQuestionIndex);
         setSelectedAnswers(savedState.selectedAnswers);
         setScore(savedState.score);
+        setBaseScore(savedState.baseScore || 0);
+        setBonusScore(savedState.bonusScore || 0);
+        setCurrentStreak(savedState.currentStreak || 0);
+        setBestStreak(savedState.bestStreak || 0);
+        setStreakEvents(savedState.streakEvents || []);
         setTimeRemaining(savedState.timeRemaining);
         setTimerDuration(savedState.timerDuration);
         setIsTimerEnabled(savedState.isTimerEnabled);
@@ -173,6 +196,11 @@ const QuizApp = () => {
             setSelectedAnswers([]);
             setQuizCompleted(false);
             setScore(0);
+            setBaseScore(0);
+            setBonusScore(0);
+            setCurrentStreak(0);
+            setBestStreak(0);
+            setStreakEvents([]);
             setTimeRemaining(isTimerEnabled ? timerDuration : null);
             setIsQuizPaused(false);
             setIsTimerPaused(false);
@@ -247,7 +275,44 @@ const QuizApp = () => {
         };
 
         setSelectedAnswers((prev) => [...prev, answerData]);
-        if (isCorrect) setScore((prev) => prev + 1);
+
+        // Base point for a question is 1 when correct
+        if (isCorrect) {
+            setBaseScore((prev) => prev + 1);
+
+            const { bonusPoints, multiplier, hitMilestone } =
+                StreakManager.calculateBonusForQuestion(true, currentStreak);
+
+            const newStreak = currentStreak + 1;
+            setCurrentStreak(newStreak);
+            setBestStreak((prev) => Math.max(prev, newStreak));
+            if (bonusPoints > 0) {
+                setBonusScore((prev) => prev + bonusPoints);
+                setBonusPop({ amount: bonusPoints, multiplier });
+                setTimeout(() => setBonusPop(null), 900);
+            }
+            if (hitMilestone) {
+                setStreakEvents((prev) => [
+                    ...prev,
+                    { type: "milestone", value: hitMilestone, index: currentQuestionIndex }
+                ]);
+            }
+        } else {
+            // Break streak
+            if (currentStreak > 0) {
+                setStreakEvents((prev) => [
+                    ...prev,
+                    { type: "break", value: currentStreak, index: currentQuestionIndex }
+                ]);
+            }
+            setCurrentStreak(0);
+        }
+
+        // Keep aggregate score in sync
+        setScore((prev) => {
+            const updated = (isCorrect ? baseScore + 1 : baseScore) + (isCorrect ? bonusScore + (StreakManager.calculateBonusForQuestion(true, currentStreak).bonusPoints) : bonusScore);
+            return updated;
+        });
 
         // Pause timer until result announcement (TTS)
         setIsTimerPaused(true);
@@ -277,7 +342,7 @@ const QuizApp = () => {
                         totalTimeSpent / questions.length;
 
                     BadgeManager.onQuizCompleted({
-                        score,
+                        score: baseScore + bonusScore,
                         totalQuestions: questions.length,
                         timeSpent: totalTimeSpent,
                         averageTimePerQuestion,
@@ -322,6 +387,11 @@ const QuizApp = () => {
         setSelectedAnswers([]);
         setQuizCompleted(false);
         setScore(0);
+        setBaseScore(0);
+        setBonusScore(0);
+        setCurrentStreak(0);
+        setBestStreak(0);
+        setStreakEvents([]);
         setIsTimerPaused(false);
         setIsResultAnnouncementComplete(false);
         fetchQuestions();
@@ -364,8 +434,12 @@ const QuizApp = () => {
             <>
                 <KeyboardShortcuts />
                 <QuizResults
-                    score={score}
+                    score={baseScore + bonusScore}
                     totalQuestions={questions.length}
+                    baseScore={baseScore}
+                    bonusScore={bonusScore}
+                    bestStreak={bestStreak}
+                    streakEvents={streakEvents}
                     onRestart={restartQuiz}
                     onBackToSetup={handleBackToSetup}
                 />
@@ -391,6 +465,13 @@ const QuizApp = () => {
             />
 
             <div className="max-w-4xl mx-auto pt-4">
+                {/* Streak Heatmap - Top of App */}
+                <StreakHeatmap
+                    numQuestions={questions.length}
+                    selectedAnswers={selectedAnswers}
+                    currentStreak={currentStreak}
+                    bonusScore={bonusScore}
+                />
                 {/* Header */}
                 <div className="text-center mb-8 relative">
                     <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
@@ -433,15 +514,7 @@ const QuizApp = () => {
                     </div>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="bg-white/20 rounded-full h-3 mb-8 overflow-hidden">
-                    <div
-                        className="bg-gradient-to-r from-pink-400 to-indigo-500 h-full rounded-full transition-all duration-500 ease-out"
-                        style={{
-                            width: `${questions.length ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0}%`,
-                        }}
-                    />
-                </div>
+                {/* Progress bar removed per request */}
 
                 {/* Countdown Timer */}
                 {isTimerEnabled && timerDuration > 0 && (
@@ -466,6 +539,25 @@ const QuizApp = () => {
                         Question {currentQuestionIndex + 1} of{" "}
                         {questions.length || 0}
                     </span>
+                </div>
+
+                {/* Streak HUD */}
+                <div className="mb-6 flex items-center justify-center gap-3">
+                    <div className={`px-4 py-2 rounded-full text-white font-bold flex items-center gap-2 ${currentStreak > 0 ? "bg-orange-500 animate-pulse" : "bg-white/20"}`}>
+                        <span>🔥</span>
+                        <span>{currentStreak}x Streak</span>
+                    </div>
+                    <div className="px-3 py-2 rounded-full bg-white/20 text-white font-semibold">
+                        Multiplier: {StreakManager.getMultiplierForStreak(currentStreak).toFixed(1)}x
+                    </div>
+                    <div className="px-3 py-2 rounded-full bg-white/20 text-white font-semibold">
+                        Bonus: {bonusScore}
+                    </div>
+                    {bonusPop && (
+                        <div className="px-3 py-2 rounded-full bg-green-500 text-white font-bold animate-bounce">
+                            +{bonusPop.amount}
+                        </div>
+                    )}
                 </div>
 
                 {/* Current Question */}
