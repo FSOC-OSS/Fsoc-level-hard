@@ -20,13 +20,53 @@ const CountdownTimer = ({
 
     // Reset timer on props change
     useEffect(() => {
-        setTimeRemaining(initialTimeRemaining !== null ? initialTimeRemaining : duration);
-        hasWarningFired.current = false;
-        hasTimeUpFired.current = false;
-        if (isActive && !isPaused) {
-            setIsRunning(true);
+        if (isRunning && timeRemaining > 0) {
+            intervalRef.current = setInterval(() => {
+                setTimeRemaining((prev) => {
+                    const newTime = prev - 1;
+
+                    // onTimeUpdate callback - use setTimeout to avoid setState during render
+                    if (onTimeUpdate) {
+                        setTimeout(() => onTimeUpdate(newTime), 0);
+                    }
+
+                    // Warning callback
+                    if (newTime === showWarningAt && !hasWarningFired.current && onWarning) {
+                        hasWarningFired.current = true;
+                        onWarning();
+                    }
+
+                    // Time up logic
+                    if (newTime <= 0) {
+                        setIsRunning(false);
+
+                        if (!hasTimeUpFired.current) {
+                            hasTimeUpFired.current = true;
+
+                            // Global handler for QuizQuestion
+                            if (typeof window !== "undefined" && window.quizQuestionHandleTimeOut) {
+                                window.quizQuestionHandleTimeOut();
+                            }
+
+                            // onTimeUp callback
+                            if (onTimeUp) onTimeUp();
+                        }
+
+                        return 0;
+                    }
+
+                    return newTime;
+                });
+            }, 1000);
+        } else if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
         }
-    }, [duration, isActive, isPaused, initialTimeRemaining]);
+
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [isRunning, timeRemaining, onTimeUp, showWarningAt, onWarning, onTimeUpdate]);
 
     // Pause/resume logic
     useEffect(() => {
