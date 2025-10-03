@@ -13,6 +13,10 @@ import PauseOverlay from "./PauseOverlay";
 import QuizStateManager from "../utils/QuizStateManager";
 import BookmarkManager from "../utils/BookmarkManager";
 import BadgeManager from "../utils/BadgeManager";
+import { useApi } from "../hooks/useApi";
+import { useToast } from "./ToastProvider";
+import { useNetworkStatus } from "../hooks/useNetworkStatus";
+import QuizLoadFailed from "./errors/QuizLoadFailed";
 
 const QuizApp = () => {
     // ---------- Core Quiz State ----------
@@ -25,7 +29,8 @@ const QuizApp = () => {
     const [reviewMode, setReviewMode] = useState(false);
 
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [errorState, setErrorState] = useState(null);
+    const [autoRetryScheduled, setAutoRetryScheduled] = useState(false);
 
 
     // ---------- Quiz Setup State ----------
@@ -48,6 +53,9 @@ const QuizApp = () => {
 
     // ---------- Badge System ----------
     const [quizStartTimestamp, setQuizStartTimestamp] = useState(null);
+    const { request } = useApi();
+    const { showToast } = useToast();
+    const { isOnline, whenOnline } = useNetworkStatus();
 
     // ---------- Helper to decode HTML entities ----------
     const decodeHtmlEntities = (text) => {
@@ -124,73 +132,115 @@ const QuizApp = () => {
     }, [isQuizPaused, quizCompleted, showSetup, saveQuizState]);
 
     // ---------- Fetch Questions ----------
-    const fetchQuestions = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            setError(null);
+    const fetchQuestions = useCallback(
+        async ({ silent = false } = {}) => {
+            try {
+                if (!silent) setIsLoading(true);
+                setErrorState(null);
 
-            const prefRaw = localStorage.getItem("quizPreferences");
-            let prefs = null;
-            if (prefRaw) {
-                try {
-                    prefs = JSON.parse(prefRaw);
-                } catch {
-                    prefs = null;
+                const prefRaw = localStorage.getItem("quizPreferences");
+                let prefs = null;
+                if (prefRaw) {
+                    try {
+                        prefs = JSON.parse(prefRaw);
+                    } catch {
+                        prefs = null;
+                    }
                 }
+
+                const amount = prefs?.numQuestions || 10;
+                const categoryId = prefs?.category?.id || null;
+                const difficulty = prefs?.difficulty?.toLowerCase() || null;
+                const type = prefs?.questionType || null;
+
+                if (prefs?.category?.name) setSelectedCategory(prefs.category.name);
+
+                const params = new URLSearchParams();
+                params.append("amount", amount);
+                if (categoryId) params.append("category", categoryId);
+                if (difficulty) params.append("difficulty", difficulty);
+                if (type) params.append("type", type);
+
+                const url = `https://opentdb.com/api.php?${params.toString()}`;
+                const { data, fromCache } = await request(
+                    url,
+                    { method: "GET" },
+                    {
+                        cacheKey: "latest-quiz-questions",
+                        description: "Fetch quiz questions",
+                    },
+                );
+
+                const results = Array.isArray(data?.results) ? data.results : data;
+                if (!Array.isArray(results) || results.length === 0) {
+                    throw new Error("No questions available for selected options.");
+                }
+
+                const processedQuestions = results.map((q) => {
+                    const answers = [...q.incorrect_answers, q.correct_answer];
+                    const shuffled = answers.sort(() => Math.random() - 0.5);
+                    return {
+                        ...q,
+                        question: decodeHtmlEntities(q.question),
+                        correct_answer: decodeHtmlEntities(q.correct_answer),
+                        answers: shuffled.map((a) => decodeHtmlEntities(a)),
+                        id: BookmarkManager.generateQuestionId(q),
+                    };
+                });
+
+                if (fromCache) {
+                    showToast({
+                        type: "warning",
+                        message: "You're offline, so we loaded the latest saved quiz. Scores will sync once you're back online.",
+                    });
+                } else {
+                    showToast({
+                        type: "success",
+                        message: "Quiz is ready! Good luck.",
+                    });
+                    localStorage.setItem(
+                        "latestQuizQuestions",
+                        JSON.stringify({
+                            results,
+                            fetchedAt: Date.now(),
+                        }),
+                    );
+                }
+
+                setQuestions(processedQuestions);
+                setCurrentQuestionIndex(0);
+                setSelectedAnswers([]);
+                setQuizCompleted(false);
+                setScore(0);
+                setTimeRemaining(isTimerEnabled ? timerDuration : null);
+                setIsQuizPaused(false);
+                setIsTimerPaused(false);
+                setIsResultAnnouncementComplete(false);
+                setQuizStartTime(Date.now());
+                setQuizStartTimestamp(Date.now());
+                QuizStateManager.clearQuizState();
+                setAutoRetryScheduled(false);
+            } catch (err) {
+                const message = err?.message || "We couldn't load the quiz questions.";
+                setErrorState({
+                    message,
+                    code: err?.code,
+                    status: err?.status,
+                });
+
+                if (err?.code === "NETWORK" && !autoRetryScheduled && !isOnline) {
+                    whenOnline(() => {
+                        setAutoRetryScheduled(false);
+                        fetchQuestions({ silent: true });
+                    });
+                    setAutoRetryScheduled(true);
+                }
+            } finally {
+                if (!silent) setIsLoading(false);
             }
-
-            const amount = prefs?.numQuestions || 10;
-            const categoryId = prefs?.category?.id || null;
-            const difficulty = prefs?.difficulty?.toLowerCase() || null;
-            const type = prefs?.questionType || null;
-
-            if (prefs?.category?.name) setSelectedCategory(prefs.category.name);
-
-            const params = new URLSearchParams();
-            params.append("amount", amount);
-            if (categoryId) params.append("category", categoryId);
-            if (difficulty) params.append("difficulty", difficulty);
-            if (type) params.append("type", type);
-
-            const url = `https://opentdb.com/api.php?${params.toString()}`;
-            const response = await fetch(url);
-
-            if (!response.ok) throw new Error("Failed to fetch questions");
-
-            const data = await response.json();
-            if (data.response_code !== 0)
-                throw new Error("No questions available for selected options.");
-
-            const processedQuestions = data.results.map((q) => {
-                const answers = [...q.incorrect_answers, q.correct_answer];
-                const shuffled = answers.sort(() => Math.random() - 0.5);
-                return {
-                    ...q,
-                    question: decodeHtmlEntities(q.question),
-                    correct_answer: decodeHtmlEntities(q.correct_answer),
-                    answers: shuffled.map((a) => decodeHtmlEntities(a)),
-                    id: BookmarkManager.generateQuestionId(q),
-                };
-            });
-
-            setQuestions(processedQuestions);
-            setCurrentQuestionIndex(0);
-            setSelectedAnswers([]);
-            setQuizCompleted(false);
-            setScore(0);
-            setTimeRemaining(isTimerEnabled ? timerDuration : null);
-            setIsQuizPaused(false);
-            setIsTimerPaused(false);
-            setIsResultAnnouncementComplete(false);
-            setQuizStartTime(Date.now());
-            setQuizStartTimestamp(Date.now());
-            QuizStateManager.clearQuizState();
-        } catch (err) {
-            setError(err.message || "Unknown error");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [timerDuration, isTimerEnabled]);
+        },
+        [request, showToast, isTimerEnabled, timerDuration, autoRetryScheduled, whenOnline, isOnline],
+    );
 
     // ---------- Auto-save every 5s ----------
     useEffect(() => {
@@ -313,12 +363,13 @@ const QuizApp = () => {
         setSelectedAnswers([]);
         setQuizCompleted(false);
         setScore(0);
-        setError(null);
+        setErrorState(null);
         setIsQuizPaused(false);
         setIsTimerPaused(false);
         setTimeRemaining(null);
         setQuizStartTime(null);
         setShowSetup(true);
+        setAutoRetryScheduled(false);
     }, []);
 
     // ---------- Restart Quiz ----------
@@ -329,6 +380,7 @@ const QuizApp = () => {
         setScore(0);
         setIsTimerPaused(false);
         setIsResultAnnouncementComplete(false);
+        setErrorState(null);
         fetchQuestions();
     };
 
@@ -336,31 +388,19 @@ const QuizApp = () => {
     if (showSetup) return <QuizSetupPage onStart={() => setShowSetup(false)} />;
     if (isLoading) return <LoadingSpinner />;
 
-    if (error) {
+    if (errorState) {
         return (
-            <div className="h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center p-4">
-                <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
-                    <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                        Oops! Something went wrong
-                    </h2>
-                    <p className="text-gray-600 mb-6">{error}</p>
-                    <div className="space-y-3">
-                        <button
-                            onClick={fetchQuestions}
-                            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200"
-                        >
-                            Try Again
-                        </button>
-                        <button
-                            onClick={handleBackToSetup}
-                            className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold py-3 px-6 rounded-lg transition-all duration-200"
-                        >
-                            ⚙️ Back to Setup
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <QuizLoadFailed
+                details={errorState.message}
+                onRetry={() => fetchQuestions()}
+                onBackToSetup={handleBackToSetup}
+                onReport={() =>
+                    window.open(
+                        "https://github.com/FSOC-OSS/Fsoc-level-hard/issues/new?labels=bug&title=Quiz+load+failed",
+                        "_blank",
+                    )
+                }
+            />
         );
     }
 
