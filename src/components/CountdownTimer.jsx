@@ -14,40 +14,27 @@ const CountdownTimer = ({
     const [timeRemaining, setTimeRemaining] = useState(
         initialTimeRemaining || duration,
     );
-    const [isRunning, setIsRunning] = useState(false);
     const intervalRef = useRef(null);
     const hasWarningFired = useRef(false);
-    const hasTimeUpFired = useRef(false);
 
     useEffect(() => {
-        const newTime =
-            initialTimeRemaining !== null ? initialTimeRemaining : duration;
-        setTimeRemaining(newTime);
+        setTimeRemaining(initialTimeRemaining || duration);
         hasWarningFired.current = false;
-        hasTimeUpFired.current = false;
-        if (isActive && !isPaused && newTime > 0) {
-            setIsRunning(true);
-        } else {
-            setIsRunning(false);
-        }
-    }, [duration, initialTimeRemaining, isActive, isPaused]);
+    }, [duration, initialTimeRemaining]);
 
     useEffect(() => {
-        if (isPaused) {
-            setIsRunning(false);
-        } else if (isActive && timeRemaining > 0 && !hasTimeUpFired.current) {
-            setIsRunning(true);
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
         }
-    }, [isPaused, isActive, timeRemaining]);
 
-    useEffect(() => {
-        if (isRunning && timeRemaining > 0) {
+        if (isActive && !isPaused && timeRemaining > 0) {
             intervalRef.current = setInterval(() => {
                 setTimeRemaining((prev) => {
                     const newTime = prev - 1;
 
                     if (onTimeUpdate) {
-                        setTimeout(() => onTimeUpdate(newTime), 0);
+                        onTimeUpdate(newTime);
                     }
 
                     if (
@@ -60,37 +47,25 @@ const CountdownTimer = ({
                     }
 
                     if (newTime <= 0) {
-                        setIsRunning(false);
-
-                        if (!hasTimeUpFired.current) {
-                            hasTimeUpFired.current = true;
-
-                            if (
-                                typeof window !== "undefined" &&
-                                window.quizQuestionHandleTimeOut
-                            ) {
-                                window.quizQuestionHandleTimeOut();
-                            }
-
-                            if (onTimeUp) onTimeUp();
+                        if (onTimeUp) {
+                            onTimeUp();
                         }
-
                         return 0;
                     }
 
                     return newTime;
                 });
             }, 1000);
-        } else if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
         }
 
         return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
         };
     }, [
-        isRunning,
+        isActive,
+        isPaused,
         timeRemaining,
         onTimeUp,
         showWarningAt,
@@ -112,13 +87,6 @@ const CountdownTimer = ({
         if (percentage <= 20) return "bg-red-500";
         if (percentage <= 40) return "bg-yellow-500";
         return "bg-green-500";
-    };
-
-    const getProgressBarGlow = () => {
-        const percentage = (timeRemaining / duration) * 100;
-        if (percentage <= 20) return "shadow-red-500/50";
-        if (percentage <= 40) return "shadow-yellow-500/50";
-        return "shadow-green-500/50";
     };
 
     const formatTime = (seconds) => {
@@ -149,28 +117,20 @@ const CountdownTimer = ({
             </div>
 
             <div className="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
-                <div className="absolute inset-0 bg-gray-300 rounded-full"></div>
-
                 <div
-                    className={`absolute left-0 top-0 h-full rounded-full transition-all duration-1000 ease-linear ${getProgressBarColor()} ${getProgressBarGlow()} shadow-lg ${isPaused ? "opacity-70" : ""}`}
+                    className={`absolute left-0 top-0 h-full rounded-full transition-all duration-1000 ease-linear ${getProgressBarColor()} shadow-lg ${isPaused ? "opacity-70" : ""}`}
                     style={{
                         width: `${progressPercentage}%`,
                         transition: isPaused
                             ? "opacity 0.3s ease, background-color 0.3s ease"
                             : "width 1s linear, background-color 0.3s ease",
                     }}
-                >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-full"></div>
-                </div>
+                />
 
                 {timeRemaining <= showWarningAt && !isPaused && (
                     <div
                         className={`absolute inset-0 rounded-full animate-pulse ${getProgressBarColor()} opacity-30`}
                     ></div>
-                )}
-
-                {isPaused && (
-                    <div className="absolute inset-0 rounded-full bg-orange-400 opacity-20 animate-pulse"></div>
                 )}
             </div>
 

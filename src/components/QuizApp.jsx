@@ -22,9 +22,6 @@ const QuizApp = () => {
     const [selectedAnswers, setSelectedAnswers] = useState([]);
     const [quizCompleted, setQuizCompleted] = useState(false);
     const [score, setScore] = useState(0);
-
-    const [reviewMode, setReviewMode] = useState(false);
-
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -37,11 +34,15 @@ const QuizApp = () => {
     const [isTimerEnabled, setIsTimerEnabled] = useState(true);
     const [isTimerPaused, setIsTimerPaused] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState(null);
-    const [timerVersion, setTimerVersion] = useState(0);
 
     // ---------- Pause State ----------
     const [isQuizPaused, setIsQuizPaused] = useState(false);
     const [quizStartTime, setQuizStartTime] = useState(null);
+
+    // ---------- Hint (50/50) State ----------
+    const [hintsLimit, setHintsLimit] = useState(3);
+    const [hintsRemaining, setHintsRemaining] = useState(3);
+    const [totalHintsUsed, setTotalHintsUsed] = useState(0);
 
     // ---------- TTS / Result Announcement ----------
     const [isResultAnnouncementComplete, setIsResultAnnouncementComplete] =
@@ -49,6 +50,7 @@ const QuizApp = () => {
 
     // ---------- Badge System ----------
     const [quizStartTimestamp, setQuizStartTimestamp] = useState(null);
+    const [sharedResult, setSharedResult] = useState(null);
 
     // ---------- Helper to decode HTML entities ----------
     const decodeHtmlEntities = (text) => {
@@ -60,6 +62,20 @@ const QuizApp = () => {
     // ---------- Initialize Badge System ----------
     useEffect(() => {
         BadgeManager.initializeBadgeSystem();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedScore = urlParams.get("score");
+        const sharedTotal = urlParams.get("total");
+        const sharedPercent = urlParams.get("percent");
+
+        if (sharedScore && sharedTotal && sharedPercent) {
+            setSharedResult({
+                score: parseInt(sharedScore),
+                total: parseInt(sharedTotal),
+                percentage: parseInt(sharedPercent),
+            });
+            setShowSetup(false);
+        }
     }, []);
 
     // ---------- Save / Load Quiz State ----------
@@ -76,6 +92,8 @@ const QuizApp = () => {
             isTimerEnabled,
             selectedCategory,
             quizStartTime,
+            hintsRemaining,
+            totalHintsUsed,
         });
 
         QuizStateManager.saveQuizState(state);
@@ -89,6 +107,8 @@ const QuizApp = () => {
         isTimerEnabled,
         selectedCategory,
         quizStartTime,
+        hintsRemaining,
+        totalHintsUsed,
     ]);
 
     const loadSavedQuizState = useCallback(() => {
@@ -104,6 +124,8 @@ const QuizApp = () => {
         setIsTimerEnabled(savedState.isTimerEnabled);
         setSelectedCategory(savedState.selectedCategory);
         setQuizStartTime(savedState.quizStartTime);
+        setHintsRemaining(savedState.hintsRemaining);
+        setTotalHintsUsed(savedState.totalHintsUsed);
         setIsQuizPaused(true);
 
         return true;
@@ -135,7 +157,7 @@ const QuizApp = () => {
             if (prefRaw) {
                 try {
                     prefs = JSON.parse(prefRaw);
-                } catch {
+                } catch (_e) {
                     prefs = null;
                 }
             }
@@ -180,12 +202,35 @@ const QuizApp = () => {
             setQuizCompleted(false);
             setScore(0);
             setTimeRemaining(isTimerEnabled ? timerDuration : null);
-            setTimerVersion(0);
             setIsQuizPaused(false);
             setIsTimerPaused(false);
             setIsResultAnnouncementComplete(false);
             setQuizStartTime(Date.now());
             setQuizStartTimestamp(Date.now());
+
+            // Setup hints per quiz (default 3) and persist preference if missing
+            const limitFromPrefs =
+                typeof prefs?.hintsPerQuiz === "number"
+                    ? prefs.hintsPerQuiz
+                    : 3;
+            setHintsLimit(limitFromPrefs);
+            setHintsRemaining(limitFromPrefs);
+            setTotalHintsUsed(0);
+            if (!prefs || typeof prefs.hintsPerQuiz !== "number") {
+                const nextPrefs = {
+                    ...(prefs || {}),
+                    hintsPerQuiz: limitFromPrefs,
+                };
+                try {
+                    localStorage.setItem(
+                        "quizPreferences",
+                        JSON.stringify(nextPrefs),
+                    );
+                } catch (_e) {
+                    // Ignore localStorage errors
+                }
+            }
+
             QuizStateManager.clearQuizState();
         } catch (err) {
             setError(err.message || "Unknown error");
@@ -270,10 +315,9 @@ const QuizApp = () => {
             const moveToNext = () => {
                 if (currentQuestionIndex < questions.length - 1) {
                     setCurrentQuestionIndex((prev) => prev + 1);
-                    setTimeRemaining(isTimerEnabled ? timerDuration : null);
-                    setTimerVersion((prev) => prev + 1);
                     setIsTimerPaused(false);
                     setIsResultAnnouncementComplete(false);
+                    setTimeRemaining(isTimerEnabled ? timerDuration : null);
                 } else {
                     setQuizCompleted(true);
 
@@ -291,17 +335,39 @@ const QuizApp = () => {
                         timeSpent: totalTimeSpent,
                         averageTimePerQuestion,
                     });
+
+                    // Store lightweight stats including hint usage
+                    try {
+                        const prev = JSON.parse(
+                            localStorage.getItem("quizStats") || "{}",
+                        );
+                        localStorage.setItem(
+                            "quizStats",
+                            JSON.stringify({
+                                ...prev,
+                                lastQuiz: {
+                                    score,
+                                    totalQuestions: questions.length,
+                                    hintsUsed: totalHintsUsed,
+                                    timeSpent: totalTimeSpent,
+                                },
+                            }),
+                        );
+                    } catch (_e) {
+                        // Ignore localStorage errors
+                    }
                 }
             };
-            setTimeout(moveToNext, 150);
+            setTimeout(moveToNext, 300);
         }
     }, [
         isResultAnnouncementComplete,
         currentQuestionIndex,
         questions.length,
         selectedAnswers,
-        isTimerEnabled,
-        timerDuration,
+        score,
+        quizStartTimestamp,
+        totalHintsUsed,
     ]);
 
     // ---------- Timer callbacks ----------
@@ -323,9 +389,10 @@ const QuizApp = () => {
         setIsQuizPaused(false);
         setIsTimerPaused(false);
         setTimeRemaining(null);
-        setTimerVersion(0);
         setQuizStartTime(null);
         setShowSetup(true);
+        setHintsRemaining(0);
+        setTotalHintsUsed(0);
     }, []);
 
     // ---------- Restart Quiz ----------
@@ -334,15 +401,48 @@ const QuizApp = () => {
         setSelectedAnswers([]);
         setQuizCompleted(false);
         setScore(0);
-        setTimeRemaining(isTimerEnabled ? timerDuration : null);
-        setTimerVersion(0);
         setIsTimerPaused(false);
         setIsResultAnnouncementComplete(false);
-        setQuizStartTimestamp(Date.now());
+        setTimeRemaining(isTimerEnabled ? timerDuration : null);
+        setHintsRemaining(hintsLimit);
+        setTotalHintsUsed(0);
         fetchQuestions();
     };
 
+    // ---------- Centralized hint request handler - decrements remaining and returns true if applied
+    const requestHint = useCallback(() => {
+        if (quizCompleted || isQuizPaused || showSetup) return false;
+        if (hintsRemaining <= 0) return false;
+        setHintsRemaining((r) => r - 1);
+        setTotalHintsUsed((c) => c + 1);
+        return true;
+    }, [quizCompleted, isQuizPaused, showSetup, hintsRemaining]);
+
     // ---------- Render ----------
+    if (sharedResult) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full text-center">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                        Shared Quiz Result
+                    </h2>
+                    <div className="text-6xl font-bold text-gray-800 mb-2">
+                        {sharedResult.score}/{sharedResult.total}
+                    </div>
+                    <div className="text-xl text-gray-600 mb-6">
+                        {sharedResult.percentage}% Correct
+                    </div>
+                    <button
+                        onClick={() => setSharedResult(null)}
+                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
+                    >
+                        Take Your Own Quiz
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (showSetup) return <QuizSetupPage onStart={() => setShowSetup(false)} />;
     if (isLoading) return <LoadingSpinner />;
 
@@ -374,15 +474,6 @@ const QuizApp = () => {
         );
     }
 
-    if (quizCompleted && reviewMode) {
-        return (
-            <QuizReviewWrapper
-                questions={questions}
-                userAnswers={selectedAnswers.map((a) => a.selectedAnswer)}
-                onBack={() => setReviewMode(false)}
-            />
-        );
-    }
     if (quizCompleted) {
         return (
             <>
@@ -392,18 +483,6 @@ const QuizApp = () => {
                     totalQuestions={questions.length}
                     onRestart={restartQuiz}
                     onBackToSetup={handleBackToSetup}
-                    questions={questions}
-                    userAnswers={selectedAnswers} // Make sure this matches your state variable name
-                    quizData={{
-                        timeSpent: quizStartTimestamp
-                            ? (Date.now() - quizStartTimestamp) / 1000
-                            : 0,
-                        averageTimePerQuestion: quizStartTimestamp
-                            ? (Date.now() - quizStartTimestamp) /
-                              1000 /
-                              questions.length
-                            : 30,
-                    }}
                 />
             </>
         );
@@ -492,7 +571,7 @@ const QuizApp = () => {
                             showWarningAt={10}
                             initialTimeRemaining={timeRemaining}
                             onTimeUpdate={setTimeRemaining}
-                            key={`timer-${currentQuestionIndex}-${timerVersion}`}
+                            key={`timer-${currentQuestionIndex}`}
                         />
                     </div>
                 )}
@@ -516,6 +595,8 @@ const QuizApp = () => {
                         }
                         isTimerEnabled={isTimerEnabled}
                         onResultAnnounced={handleResultAnnounced}
+                        hintsRemaining={hintsRemaining}
+                        onRequestHint={requestHint}
                     />
                 )}
             </div>
