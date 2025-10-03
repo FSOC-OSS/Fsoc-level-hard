@@ -38,8 +38,12 @@ const QuizApp = () => {
     const [selectedAnswers, setSelectedAnswers] = useState([]);
     const [quizCompleted, setQuizCompleted] = useState(false);
     const [score, setScore] = useState(0);
+
+    const [reviewMode, setReviewMode] = useState(false);
+
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+
 
     // ---------- Quiz Setup State ----------
     const [showSetup, setShowSetup] = useState(true);
@@ -684,6 +688,15 @@ const QuizApp = () => {
         );
     }
 
+    if (quizCompleted && reviewMode) {
+        return (
+            <QuizReviewWrapper
+                questions={questions}
+                userAnswers={selectedAnswers.map(a => a.selectedAnswer)}
+                onBack={() => setReviewMode(false)}
+            />
+        );
+    }
     if (quizCompleted) {
         return (
             <>
@@ -693,6 +706,12 @@ const QuizApp = () => {
                     totalQuestions={questions.length}
                     onRestart={restartQuiz}
                     onBackToSetup={handleBackToSetup}
+                    questions={questions}
+                    userAnswers={selectedAnswers} // Make sure this matches your state variable name
+                    quizData={{
+                        timeSpent: quizStartTimestamp ? (Date.now() - quizStartTimestamp) / 1000 : 0,
+                        averageTimePerQuestion: quizStartTimestamp ? ((Date.now() - quizStartTimestamp) / 1000) / questions.length : 30
+                    }}
                 />
             </>
         );
@@ -732,11 +751,10 @@ const QuizApp = () => {
                         <button
                             onClick={handlePauseToggle}
                             disabled={quizCompleted}
-                            className={`flex items-center justify-center w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 hover:border-white/40 ${
-                                quizCompleted
-                                    ? "opacity-50 cursor-not-allowed"
-                                    : "cursor-pointer"
-                            }`}
+                            className={`flex items-center justify-center w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 hover:border-white/40 ${quizCompleted
+                                ? "opacity-50 cursor-not-allowed"
+                                : "cursor-pointer"
+                                }`}
                             aria-label={
                                 isQuizPaused ? "Resume quiz" : "Pause quiz"
                             }
