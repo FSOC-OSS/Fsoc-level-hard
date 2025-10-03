@@ -195,7 +195,11 @@ const QuizSetupPage = ({ onStart }) => {
                             Start Quiz
                         </button>
 
-                        <button className="bg-gradient-to-r from-purple-500 to-indigo-600 py-4 px-12 rounded-xl text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform">
+                        <button
+                            onClick={() => navigate("/badges")}
+                            className="bg-gradient-to-r from-purple-500 to-indigo-600 py-4 px-12 rounded-xl text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform"
+                            title="View Achievements & Badges"
+                        >
                             <FontAwesomeIcon
                                 icon={faTrophy}
                                 className="w-6 h-6"
