@@ -53,6 +53,15 @@ const QuizSetupPage = ({ onStart }) => {
         setLoadingTypes(false);
     }, []);
 
+    const handleQuestionTypeChange = (option) => {
+        if (typeof option === "string") {
+            const found = questionTypes.find((t) => t.label === option);
+            if (found) setQuestionType(found.value);
+        } else if (option?.value) {
+            setQuestionType(option.value);
+        }
+    };
+
     const handleStartQuiz = () => {
         const preferences = {
             numQuestions,
@@ -69,7 +78,6 @@ const QuizSetupPage = ({ onStart }) => {
         <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600 overflow-hidden">
             <div className="w-full max-w-3xl">
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-xl">
-                    {/* Header */}
                     <div className="flex items-center justify-center gap-2 mb-8">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -77,7 +85,7 @@ const QuizSetupPage = ({ onStart }) => {
                             viewBox="0 0 24 24"
                             fill="currentColor"
                         >
-                            <path d="M19.43 12.98c.04-.32.07-.66.07-1s-.03-.68-.07-1l2.11-1.65a.5.5 0 00.11-.64l-2-3.46a.5.5 0 00-.61-.22l-2.49 1a7.03 7.03 0 00-1.73-1l-.38-2.65A.495.495 0 0014 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.63.27-1.21.61-1.73 1l-2.49-1a.5.5 0 00-.61.22l-2 3.46c-.14.23-.1.54.11.64L4.57 11c-.04.32-.07.66-.07 1s.03.68.07 1l-2.11 1.65a.5.5 0 00-.11.64l2 3.46c.14.23.41.3.61.22l2.49-1c.52.39 1.1.73 1.73 1l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.63-.27 1.21-.61 1.73-1l2.49 1c.2.08.47.01.61-.22l2-3.46a.5.5 0 00-.11-.64L19.43 12.98zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z" />
+                            <path d="M19.43 12.98c.04-.32.07-.66.07-1s-.03-.68-.07-1l2.11-1.65a.5.5 0 00.11-.64l-2-3.46a.5.5 0 00-.61-.22l-2.49 1a7.03 7.03 0 00-1.73-1l-.38-2.65A.495.495 0 0014 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.63.27-1.21.61-1.73 1l-2.49-1a.5.5 0 00-.61.22l-2 3.46c-.14.23-.1.54.11.64L4.57 11c-.04.32-.07.66-.07 1s.03.68.07 1l-2.11 1.65a.5.5 0 00-.11.64l2 3.46c.14.23.41.3.61.22l2.49-1c.52.39 1.10.73 1.73 1l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.63-.27 1.21-.61 1.73-1l2.49 1c.2.08.47.01.61-.22l2-3.46a.5.5 0 00-.11-.64L19.43 12.98zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z" />
                         </svg>
                         <h1 className="text-3xl font-semibold text-white tracking-wide">
                             Quiz Setup
@@ -87,7 +95,6 @@ const QuizSetupPage = ({ onStart }) => {
                         Configure your quiz preferences and get started!
                     </p>
 
-                    {/* Number of Questions */}
                     <div className="mb-6">
                         <label className="block text-white font-medium mb-3">
                             Number of Questions:{" "}
@@ -103,7 +110,6 @@ const QuizSetupPage = ({ onStart }) => {
                         />
                     </div>
 
-                    {/* Category */}
                     <div className="mb-6">
                         <label className="block text-white font-medium mb-3">
                             Category
@@ -130,7 +136,6 @@ const QuizSetupPage = ({ onStart }) => {
                         )}
                     </div>
 
-                    {/* Difficulty */}
                     <div className="mb-6">
                         <label className="block text-white font-medium mb-3">
                             Difficulty
@@ -145,7 +150,6 @@ const QuizSetupPage = ({ onStart }) => {
                         />
                     </div>
 
-                    {/* Question Type */}
                     <div className="mb-8">
                         <label className="block text-white font-medium mb-3">
                             Question Type
@@ -162,16 +166,7 @@ const QuizSetupPage = ({ onStart }) => {
                                         (t) => t.value === questionType,
                                     )?.label || ""
                                 }
-                                onChange={(option) => {
-                                    if (typeof option === "string") {
-                                        const found = questionTypes.find(
-                                            (t) => t.label === option,
-                                        );
-                                        if (found) setQuestionType(found.value);
-                                    } else if (option?.value) {
-                                        setQuestionType(option.value);
-                                    }
-                                }}
+                                onChange={handleQuestionTypeChange}
                                 options={questionTypes}
                                 openDropdown={openDropdown}
                                 setOpenDropdown={setOpenDropdown}
@@ -180,7 +175,6 @@ const QuizSetupPage = ({ onStart }) => {
                         )}
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex gap-4 mb-6">
                         <button
                             onClick={handleStartQuiz}
@@ -233,7 +227,6 @@ const QuizSetupPage = ({ onStart }) => {
                         </button>
                     </div>
 
-                    {/* Quick Settings */}
                     <QuickSettings
                         numQuestions={numQuestions}
                         category={category}
@@ -246,7 +239,6 @@ const QuizSetupPage = ({ onStart }) => {
     );
 };
 
-/* Sub-components */
 const RangeSlider = ({ value, onChange, min, max }) => {
     const percentage = ((value - min) / (max - min)) * 100;
     return (
@@ -372,7 +364,6 @@ const QuickSettings = ({
     return (
         <div className="w-full flex justify-center">
             <div className="grid grid-cols-5 gap-3 w-full max-w-5xl">
-                {/* Questions */}
                 <div className="bg-white/10 border border-white/20 rounded-xl p-4 text-center">
                     <div className="text-2xl font-extrabold text-yellow-400">
                         {numQuestions}
@@ -382,7 +373,6 @@ const QuickSettings = ({
                     </div>
                 </div>
 
-                {/* Category */}
                 <div className="col-span-2 bg-white/10 border border-white/20 rounded-xl p-4 text-center">
                     <div className="text-lg font-bold text-amber-300">
                         {category?.name || ""}
@@ -392,7 +382,6 @@ const QuickSettings = ({
                     </div>
                 </div>
 
-                {/* Difficulty */}
                 <div className="bg-white/10 border border-white/20 rounded-xl p-4 text-center">
                     <div
                         className={`text-lg ${getDifficultyColor(difficulty)}`}
@@ -404,7 +393,6 @@ const QuickSettings = ({
                     </div>
                 </div>
 
-                {/* Type */}
                 <div className="bg-white/10 border border-white/20 rounded-xl p-4 text-center">
                     <div className="text-lg font-bold text-green-300">
                         {getShortType(questionType)}

@@ -323,7 +323,7 @@ class BadgeManager {
     const accuracy = Math.round((score / totalQuestions) * 100);
 
     const stats = this.getBadgeStats();
-    const updatedStats = this.updateBadgeStats({
+    this.updateBadgeStats({
       quiz_count: stats.quiz_count + 1,
       total_correct_answers: stats.total_correct_answers + score,
       total_questions_answered: stats.total_questions_answered + totalQuestions,
@@ -348,7 +348,7 @@ class BadgeManager {
     const stats = this.getBadgeStats();
     const newConsecutive = isCorrect ? stats.consecutive_correct + 1 : 0;
 
-    const updatedStats = this.updateBadgeStats({
+    this.updateBadgeStats({
       consecutive_correct: newConsecutive,
       max_consecutive_correct: Math.max(stats.max_consecutive_correct, newConsecutive),
       fastest_answer_time: stats.fastest_answer_time

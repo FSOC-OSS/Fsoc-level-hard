@@ -16,7 +16,6 @@ const BadgesPage = () => {
 
   const loadBadgeData = () => {
     const badgesByCategory = BadgeManager.getBadgesByCategory();
-    const userBadges = BadgeManager.getUserBadges();
     const badgeStats = BadgeManager.getBadgeStats();
     const progress = BadgeManager.getOverallProgress();
 
@@ -50,7 +49,6 @@ const BadgesPage = () => {
   return (
 <div className="min-h-screen theme-screen">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => navigate('/')}
@@ -72,7 +70,6 @@ const BadgesPage = () => {
           <div className="w-20"></div>
         </div>
 
-        {/* Overall Progress */}
         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-white">Overall Progress</h2>
@@ -105,7 +102,6 @@ const BadgesPage = () => {
           </div>
         </div>
 
-        {/* Category Filter */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {categories.map(category => (
             <button
@@ -122,7 +118,6 @@ const BadgesPage = () => {
           ))}
         </div>
 
-        {/* Badge Categories */}
         {Object.entries(getFilteredBadges()).map(([categoryName, categoryBadges]) => (
           <div key={categoryName} className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-6 capitalize">
@@ -141,7 +136,6 @@ const BadgesPage = () => {
                       isEarned ? 'shadow-lg shadow-purple-500/25' : 'opacity-70'
                     }`}
                   >
-                    {/* Lock Icon for Locked Badges */}
                     {!isEarned && (
                       <div className="absolute top-4 right-4">
                         <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -150,12 +144,10 @@ const BadgesPage = () => {
                       </div>
                     )}
 
-                    {/* Badge Icon */}
                     <div className={`text-5xl mb-4 ${isEarned ? '' : 'grayscale'}`}>
                       {badge.icon}
                     </div>
 
-                    {/* Badge Info */}
                     <div className="mb-4">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className={`text-lg font-bold ${isEarned ? 'text-white' : 'text-gray-400'}`}>
@@ -178,7 +170,6 @@ const BadgesPage = () => {
                       </p>
                     </div>
 
-                    {/* Progress or Status */}
                     {isEarned ? (
                       <div className="flex items-center gap-2 text-green-400 text-sm font-medium">
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -210,7 +201,6 @@ const BadgesPage = () => {
           </div>
         ))}
 
-        {/* Stats Summary */}
         {stats && (
           <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 mt-8">
             <h2 className="text-xl font-semibold text-white mb-4">Your Stats</h2>

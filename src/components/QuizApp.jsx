@@ -18,59 +18,38 @@ import ConsentManager from "../utils/ConsentManager";
 import BonusManager from "../utils/BonusManager";
 
 const QuizApp = () => {
-    // ---------- Core Quiz State ----------
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState([]);
     const [quizCompleted, setQuizCompleted] = useState(false);
     const [score, setScore] = useState(0);
-
-    // ---------- Review Mode ----------
     const [reviewMode, setReviewMode] = useState(false);
-
-    // ---------- Loading / Error ----------
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-
-    // ---------- Quiz Setup State ----------
     const [showSetup, setShowSetup] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState("");
-
-    // ---------- Timer State ----------
     const [timerDuration, setTimerDuration] = useState(30);
     const [isTimerEnabled, setIsTimerEnabled] = useState(true);
     const [isTimerPaused, setIsTimerPaused] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState(null);
-
-    // ---------- Pause State ----------
     const [isQuizPaused, setIsQuizPaused] = useState(false);
     const [quizStartTime, setQuizStartTime] = useState(null);
-
-    // ---------- Hint (50/50) State ----------
     const [hintsLimit, setHintsLimit] = useState(3);
     const [hintsRemaining, setHintsRemaining] = useState(3);
     const [totalHintsUsed, setTotalHintsUsed] = useState(0);
-
-    // ---------- TTS / Result Announcement ----------
-    const [isResultAnnouncementComplete, setIsResultAnnouncementComplete] =
-        useState(false);
-
-    // ---------- Badge System ----------
+    const [isResultAnnouncementComplete, setIsResultAnnouncementComplete] = useState(false);
     const [quizStartTimestamp, setQuizStartTimestamp] = useState(null);
 
-    // ---------- Helper to decode HTML entities ----------
     const decodeHtmlEntities = (text) => {
         const textarea = document.createElement("textarea");
         textarea.innerHTML = text;
         return textarea.value;
     };
 
-    // ---------- Initialize Badge System ----------
     useEffect(() => {
         BadgeManager.initializeBadgeSystem && BadgeManager.initializeBadgeSystem();
     }, []);
 
-    // ---------- Save / Load Quiz State ----------
     const saveQuizState = useCallback(() => {
         if (questions.length === 0) return;
 
@@ -135,7 +114,6 @@ const QuizApp = () => {
         return true;
     }, [timerDuration, isTimerEnabled, hintsLimit]);
 
-    // ---------- Handle Pause / Resume ----------
     const handlePauseToggle = useCallback(() => {
         if (quizCompleted || showSetup) return;
 
@@ -150,7 +128,6 @@ const QuizApp = () => {
         }
     }, [isQuizPaused, quizCompleted, showSetup, saveQuizState]);
 
-    // ---------- Fetch Questions ----------
     const fetchQuestions = useCallback(async () => {
         try {
             setIsLoading(true);
@@ -183,9 +160,9 @@ const QuizApp = () => {
 
             const attempts = [
                 makeParams({ amount, categoryId, difficulty, type }),
-                makeParams({ amount, categoryId, difficulty }), // drop type
-                makeParams({ amount, difficulty }), // drop category
-                makeParams({ amount }), // only amount
+                makeParams({ amount, categoryId, difficulty }),
+                makeParams({ amount, difficulty }),
+                makeParams({ amount }),
             ];
 
             let data = null;
@@ -258,27 +235,13 @@ const QuizApp = () => {
         }
     }, [timerDuration, isTimerEnabled]);
 
-
-    // ---------- Auto-save every 5s ----------
     useEffect(() => {
-        if (
-            !isQuizPaused &&
-            questions.length > 0 &&
-            !quizCompleted &&
-            !showSetup
-        ) {
+        if (!isQuizPaused && questions.length > 0 && !quizCompleted && !showSetup) {
             const interval = setInterval(saveQuizState, 5000);
             return () => clearInterval(interval);
         }
-    }, [
-        isQuizPaused,
-        questions.length,
-        quizCompleted,
-        showSetup,
-        saveQuizState,
-    ]);
+    }, [isQuizPaused, questions.length, quizCompleted, showSetup, saveQuizState]);
 
-    // ---------- Load saved state or fetch questions after setup ----------
     useEffect(() => {
         if (!showSetup) {
             const hasSavedState = loadSavedQuizState();
@@ -286,27 +249,16 @@ const QuizApp = () => {
         }
     }, [showSetup, loadSavedQuizState, fetchQuestions]);
 
-    // ---------- Auto-pause on visibility change ----------
     useEffect(() => {
         const handleVisibilityChange = () => {
-            if (
-                document.hidden &&
-                !isQuizPaused &&
-                !quizCompleted &&
-                !showSetup
-            ) {
+            if (document.hidden && !isQuizPaused && !quizCompleted && !showSetup) {
                 handlePauseToggle();
             }
         };
         document.addEventListener("visibilitychange", handleVisibilityChange);
-        return () =>
-            document.removeEventListener(
-                "visibilitychange",
-                handleVisibilityChange,
-            );
+        return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
     }, [isQuizPaused, quizCompleted, showSetup, handlePauseToggle]);
 
-    // ---------- Answer Selection ----------
     const handleAnswerSelect = (selectedAnswer) => {
         const currentQuestion = questions[currentQuestionIndex];
         const isCorrect = selectedAnswer === currentQuestion?.correct_answer;
@@ -321,17 +273,12 @@ const QuizApp = () => {
         setSelectedAnswers((prev) => [...prev, answerData]);
         if (isCorrect) setScore((prev) => prev + 1);
 
-        // Pause timer until result announcement (TTS)
         setIsTimerPaused(true);
         setIsResultAnnouncementComplete(false);
     };
 
-    // ---------- Auto-advance after TTS ----------
     useEffect(() => {
-        if (
-            isResultAnnouncementComplete &&
-            selectedAnswers[currentQuestionIndex]
-        ) {
+        if (isResultAnnouncementComplete && selectedAnswers[currentQuestionIndex]) {
             const moveToNext = () => {
                 if (currentQuestionIndex < questions.length - 1) {
                     setCurrentQuestionIndex((prev) => prev + 1);
@@ -341,28 +288,19 @@ const QuizApp = () => {
                 } else {
                     setQuizCompleted(true);
 
-                    // Track quiz completion for badges & lightweight stats
                     const quizEndTime = Date.now();
-                    const totalTimeSpent = quizStartTimestamp
-                        ? (quizEndTime - quizStartTimestamp) / 1000
-                        : 0;
-                    const averageTimePerQuestion = questions.length
-                        ? totalTimeSpent / questions.length
-                        : 0;
+                    const totalTimeSpent = quizStartTimestamp ? (quizEndTime - quizStartTimestamp) / 1000 : 0;
+                    const averageTimePerQuestion = questions.length ? totalTimeSpent / questions.length : 0;
 
-                    BadgeManager.onQuizCompleted &&
-                        BadgeManager.onQuizCompleted({
-                            score,
-                            totalQuestions: questions.length,
-                            timeSpent: totalTimeSpent,
-                            averageTimePerQuestion,
-                        });
+                    BadgeManager.onQuizCompleted && BadgeManager.onQuizCompleted({
+                        score,
+                        totalQuestions: questions.length,
+                        timeSpent: totalTimeSpent,
+                        averageTimePerQuestion,
+                    });
 
-                    // Store lightweight stats including hint usage
                     try {
-                        const prev = JSON.parse(
-                            localStorage.getItem("quizStats") || "{}",
-                        );
+                        const prev = JSON.parse(localStorage.getItem("quizStats") || "{}");
                         localStorage.setItem(
                             "quizStats",
                             JSON.stringify({
@@ -394,14 +332,10 @@ const QuizApp = () => {
         timerDuration,
     ]);
 
-
-    // ---------- Timer callbacks ----------
     const handleTimerExpired = () => handleAnswerSelect(null);
-    const handleTimerWarning = () =>
-        console.log("Timer warning: 10 seconds remaining");
+    const handleTimerWarning = () => console.log("Timer warning: 10 seconds remaining");
     const handleResultAnnounced = () => setIsResultAnnouncementComplete(true);
 
-    // ---------- Back to Setup ----------
     const handleBackToSetup = useCallback(() => {
         QuizStateManager.clearQuizState();
         setQuestions([]);
@@ -419,7 +353,6 @@ const QuizApp = () => {
         setTotalHintsUsed(0);
     }, []);
 
-    // ---------- Restart Quiz ----------
     const restartQuiz = () => {
         BonusManager.resetWheelState();
         setCurrentQuestionIndex(0);
@@ -433,7 +366,6 @@ const QuizApp = () => {
         fetchQuestions();
     };
 
-    // ---------- Centralized hint request handler ----------
     const requestHint = useCallback(() => {
         if (quizCompleted || isQuizPaused || showSetup) return false;
         if (hintsRemaining <= 0) return false;
@@ -442,21 +374,12 @@ const QuizApp = () => {
         return true;
     }, [quizCompleted, isQuizPaused, showSetup, hintsRemaining]);
 
-    // ---------- Analytics (simulated) ----------
     useEffect(() => {
-        if (
-            ConsentManager &&
-            ConsentManager.hasConsent &&
-            ConsentManager.hasConsent(ConsentManager.categories?.analytics)
-        ) {
-            // Simulate an analytics pageview
-            console.debug("[analytics] pageview", {
-                path: window.location.pathname,
-            });
+        if (ConsentManager && ConsentManager.hasConsent && ConsentManager.hasConsent(ConsentManager.categories?.analytics)) {
+            console.debug("[analytics] pageview", { path: window.location.pathname });
         }
     }, []);
 
-    // ---------- Render ----------
     if (showSetup) return <QuizSetupPage onStart={() => setShowSetup(false)} />;
     if (isLoading) return <LoadingSpinner />;
 
@@ -465,9 +388,7 @@ const QuizApp = () => {
             <div className="h-screen theme-screen flex items-center justify-center p-4">
                 <div className="app-card rounded-lg shadow-xl p-8 max-w-md w-full text-center">
                     <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                    <h2 className="text-2xl font-bold mb-4">
-                        Oops! Something went wrong
-                    </h2>
+                    <h2 className="text-2xl font-bold mb-4">Oops! Something went wrong</h2>
                     <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
                     <div className="space-y-3">
                         <button
@@ -499,9 +420,7 @@ const QuizApp = () => {
     }
 
     if (quizCompleted) {
-        const timeSpent = quizStartTimestamp
-            ? (Date.now() - quizStartTimestamp) / 1000
-            : 0;
+        const timeSpent = quizStartTimestamp ? (Date.now() - quizStartTimestamp) / 1000 : 0;
         const avgTime = questions.length ? timeSpent / questions.length : 0;
         return (
             <>
@@ -538,12 +457,10 @@ const QuizApp = () => {
             />
 
             <div className="max-w-4xl mx-auto pt-4">
-                {/* Header */}
                 <div className="text-center mb-8 relative">
                     <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">Quiz Challenge</h1>
                     <p className="text-purple-200 text-lg">Test your knowledge with {selectedCategory || "this topic"} questions!</p>
 
-                    {/* Timer / Settings */}
                     <div className="absolute top-0 right-0 flex gap-2 items-center">
                         <button
                             onClick={handlePauseToggle}
@@ -566,7 +483,6 @@ const QuizApp = () => {
                     </div>
                 </div>
 
-                {/* Progress Bar */}
                 <div className="bg-white/20 rounded-full h-3 mb-8 overflow-hidden">
                     <div
                         className="bg-gradient-to-r from-pink-400 to-indigo-500 h-full rounded-full transition-all duration-500 ease-out"
@@ -576,7 +492,6 @@ const QuizApp = () => {
                     />
                 </div>
 
-                {/* Countdown Timer */}
                 {isTimerEnabled && timerDuration > 0 && (
                     <div className="mb-6">
                         <CountdownTimer
@@ -593,22 +508,17 @@ const QuizApp = () => {
                     </div>
                 )}
 
-                {/* Question Counter */}
                 <div className="text-center mb-6">
                     <span className="bg-white/20 text-white px-4 py-2 rounded-full text-lg font-semibold">
                         Question {currentQuestionIndex + 1} of {questions.length || 0}
                     </span>
                 </div>
 
-                {/* Current Question */}
                 {questions.length > 0 && !isQuizPaused && (
                     <QuizQuestion
                         question={questions[currentQuestionIndex]}
                         onAnswerSelect={handleAnswerSelect}
-                        selectedAnswer={
-                            selectedAnswers[currentQuestionIndex]
-                                ?.selectedAnswer
-                        }
+                        selectedAnswer={selectedAnswers[currentQuestionIndex]?.selectedAnswer}
                         isTimerEnabled={isTimerEnabled}
                         onResultAnnounced={handleResultAnnounced}
                         hintsRemaining={hintsRemaining}
