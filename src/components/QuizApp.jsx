@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import QuizQuestion from "./QuizQuestion";
 import QuizResults from "./QuizResults";
 import QuizReviewWrapper from "./QuizReviewWrapper";
@@ -18,7 +18,14 @@ import BadgeManager from "../utils/BadgeManager";
 import ConsentManager from "../utils/ConsentManager";
 import BonusManager from "../utils/BonusManager";
 
-const QuizApp = () => {
+const QuizApp = ({
+    startImmediately = false,
+    initialPreferences = null,
+    sessionId = null,
+    currentQuestionNumber,
+    onQuestionChange,
+    onComplete,
+}) => {
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState([]);
@@ -27,7 +34,7 @@ const QuizApp = () => {
     const [reviewMode, setReviewMode] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [showSetup, setShowSetup] = useState(true);
+    const [showSetup, setShowSetup] = useState(!startImmediately);
     const [selectedCategory, setSelectedCategory] = useState("");
     const [timerDuration, setTimerDuration] = useState(30);
     const [isTimerEnabled, setIsTimerEnabled] = useState(true);
@@ -143,13 +150,28 @@ const QuizApp = () => {
                     ConsentManager.getItem &&
                     ConsentManager.getItem("quizPreferences")) ||
                 localStorage.getItem("quizPreferences");
-            let prefs = null;
+            let stored = null;
             if (prefRaw) {
                 try {
-                    prefs = JSON.parse(prefRaw);
+                    stored = JSON.parse(prefRaw);
                 } catch {
-                    prefs = null;
+                    stored = null;
                 }
+            }
+
+            // Merge URL-provided preferences into stored preferences
+            let prefs = stored || {};
+            if (initialPreferences) {
+                prefs = {
+                    ...prefs,
+                    numQuestions: initialPreferences.numQuestions ?? prefs.numQuestions,
+                    category: {
+                        id: initialPreferences.categoryId ?? prefs?.category?.id,
+                        name: initialPreferences.categoryName ?? prefs?.category?.name,
+                    },
+                    difficulty: initialPreferences.difficulty ?? prefs.difficulty,
+                    questionType: initialPreferences.type ?? prefs.questionType,
+                };
             }
 
             const amount = prefs?.numQuestions || 10;
@@ -160,6 +182,7 @@ const QuizApp = () => {
             const type = prefs?.questionType || null;
 
             if (prefs?.category?.name) setSelectedCategory(prefs.category.name);
+            else if (initialPreferences?.categoryName) setSelectedCategory(initialPreferences.categoryName);
 
             const buildUrl = (p) =>
                 `https://opentdb.com/api.php?${p.toString()}`;
@@ -405,6 +428,51 @@ const QuizApp = () => {
         console.log("Timer warning: 10 seconds remaining");
     const handleResultAnnounced = () => setIsResultAnnouncementComplete(true);
 
+    // Sync external currentQuestionNumber to internal state when provided
+    useEffect(() => {
+        if (typeof currentQuestionNumber !== "number") return;
+        if (questions.length === 0) return;
+        const idx = Math.max(0, Math.min(questions.length - 1, currentQuestionNumber - 1));
+        if (idx !== currentQuestionIndex) {
+            setCurrentQuestionIndex(idx);
+        }
+    }, [currentQuestionNumber, questions.length]);
+
+    // Notify caller of question changes
+    useEffect(() => {
+        if (typeof onQuestionChange === "function" && questions.length > 0) {
+            onQuestionChange(currentQuestionIndex + 1);
+        }
+    }, [currentQuestionIndex, questions.length, onQuestionChange]);
+
+    // Notify completion to caller once
+    const completionSentRef = useRef(false);
+    useEffect(() => {
+        if (!quizCompleted) return;
+        if (completionSentRef.current) return;
+        if (typeof onComplete !== "function") return;
+        completionSentRef.current = true;
+        const timeSpent = quizStartTimestamp
+            ? (Date.now() - quizStartTimestamp) / 1000
+            : 0;
+        const avgTime = questions.length ? timeSpent / questions.length : 0;
+        try {
+            onComplete({
+                score,
+                totalQuestions: questions.length,
+                questions,
+                userAnswers: selectedAnswers.map((a) => a.selectedAnswer),
+                quizData: {
+                    timeSpent,
+                    averageTimePerQuestion: avgTime,
+                    hintsUsed: totalHintsUsed,
+                },
+            });
+        } catch (e) {
+            // ignore
+        }
+    }, [quizCompleted]);
+
     const handleBackToSetup = useCallback(() => {
         QuizStateManager.clearQuizState();
         setQuestions([]);
@@ -503,6 +571,12 @@ const QuizApp = () => {
             ? (Date.now() - quizStartTimestamp) / 1000
             : 0;
         const avgTime = questions.length ? timeSpent / questions.length : 0;
+
+        // If consumer provided onComplete, delegate navigation/results to caller
+        if (typeof onComplete === "function") {
+            return null;
+        }
+
         return (
             <>
                 <KeyboardShortcuts />

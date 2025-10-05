@@ -62,7 +62,8 @@ const QuizQuestion = ({
         setTranscript("");
         setHintsUsed(0);
         setEliminatedIndices(new Set());
-        setShuffledIndices([0, 1, 2, 3]);
+        const count = Array.isArray(question?.answers) ? question.answers.length : 0;
+        setShuffledIndices(Array.from({ length: count }, (_, i) => i));
         setIsShuffling(false);
         setLastShuffleTime(null);
         setShuffleCounter(0);
@@ -95,14 +96,15 @@ const QuizQuestion = ({
             setShuffleCounter((prev) => prev + 1);
 
             if (shuffleCounter % 3 === 0) {
-                setIsShuffling(true);
-
-                const newIndices = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
-
-                setTimeout(() => {
-                    setShuffledIndices(newIndices);
-                    setTimeout(() => setIsShuffling(false), 150);
-                }, 100);
+                const count = Array.isArray(question?.answers) ? question.answers.length : 0;
+                if (count >= 2) {
+                    setIsShuffling(true);
+                    const newIndices = Array.from({ length: count }, (_, i) => i).sort(() => Math.random() - 0.5);
+                    setTimeout(() => {
+                        setShuffledIndices(newIndices);
+                        setTimeout(() => setIsShuffling(false), 150);
+                    }, 100);
+                }
             }
         }
     }, [
@@ -490,6 +492,7 @@ const QuizQuestion = ({
                 <div className="space-y-4">
                     {shuffledIndices.map((originalIndex, displayPosition) => {
                         const answer = question.answers[originalIndex];
+                        if (typeof answer === "undefined") return null;
                         const isEliminated =
                             eliminatedIndices.has(originalIndex);
                         return (
