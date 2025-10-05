@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import BookmarkManager from "../utils/BookmarkManager";
 import BadgeManager from "../utils/BadgeManager";
 import FeedbackManager from "../utils/FeedbackManager";
@@ -12,6 +12,8 @@ import CommentSection from "./CommentSection";
 import ThankYouModal from "./ThankYouModal";
 import { useVoice } from "../hooks/useVoice";
 import CelebrationManager from "../utils/CelebrationManager";
+import correctSfx from "../assets/correct.mp3";
+import wrongSfx from "../assets/wrong.mp3";
 
 const QuizQuestion = ({
     question,
@@ -43,6 +45,9 @@ const QuizQuestion = ({
     const [isShuffling, setIsShuffling] = useState(false);
     const [lastShuffleTime, setLastShuffleTime] = useState(null);
     const [shuffleCounter, setShuffleCounter] = useState(0);
+    // Audio refs for correct/incorrect sounds
+    const correctAudioRef = useRef(null);
+    const wrongAudioRef = useRef(null);
 
     // Feedback states
     const [showFeedbackSection, setShowFeedbackSection] = useState(false);
@@ -85,6 +90,21 @@ const QuizQuestion = ({
 
     // Effect to reset state when a new question is loaded
     useEffect(() => {
+        // Initialize audio elements once
+        try {
+            correctAudioRef.current = new Audio(correctSfx);
+            wrongAudioRef.current = new Audio(wrongSfx);
+            // sensible default volume for SFX; can be adjusted later
+            if (correctAudioRef.current) correctAudioRef.current.volume = 0.75;
+            if (wrongAudioRef.current) wrongAudioRef.current.volume = 0.75;
+            // preload to reduce latency
+            if (correctAudioRef.current) correctAudioRef.current.preload = "auto";
+            if (wrongAudioRef.current) wrongAudioRef.current.preload = "auto";
+        } catch (e) {
+            // ignore audio init failures (browser restrictions, etc.)
+            console.warn("Failed to initialize answer sound effects:", e);
+        }
+
         setClickedAnswer(null);
         setIsTimedOut(false);
         setShowResult(false);
@@ -269,6 +289,28 @@ const QuizQuestion = ({
             }
 
             setIsAnnouncingResult(true);
+            // Play SFX if enabled in CelebrationManager settings
+            try {
+                const settings = CelebrationManager.getSettings();
+                if (settings && settings.enableSound) {
+                    if (isTimedOut || !isCorrect) {
+                        if (wrongAudioRef.current) {
+                            wrongAudioRef.current.pause();
+                            try { wrongAudioRef.current.currentTime = 0; } catch(e){}
+                            wrongAudioRef.current.play().catch(() => {});
+                        }
+                    } else if (isCorrect) {
+                        if (correctAudioRef.current) {
+                            correctAudioRef.current.pause();
+                            try { correctAudioRef.current.currentTime = 0; } catch(e){}
+                            correctAudioRef.current.play().catch(() => {});
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('Error playing answer SFX:', e);
+            }
+
             speak(resultText, () => {
                 setIsAnnouncingResult(false);
                 setHasResultBeenAnnounced(true);
@@ -276,6 +318,24 @@ const QuizQuestion = ({
             });
         }
     }, [showResult, selectedAnswer, clickedAnswer, isTimedOut, question, hasResultBeenAnnounced, speak, onResultAnnounced]);
+
+    // cleanup audio on unmount
+    useEffect(() => {
+        return () => {
+            try {
+                if (correctAudioRef.current) {
+                    correctAudioRef.current.pause();
+                    correctAudioRef.current.src = "";
+                }
+                if (wrongAudioRef.current) {
+                    wrongAudioRef.current.pause();
+                    wrongAudioRef.current.src = "";
+                }
+            } catch (e) {
+                // no-op
+            }
+        };
+    }, []);
 
     // Button classes
     const getButtonClass = (answer) => {
