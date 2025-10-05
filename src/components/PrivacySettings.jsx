@@ -40,6 +40,18 @@ const PrivacySettings = () => {
     location.reload()
   }
 
+  const handleResetOnboarding = () => {
+    if (!confirm('Reset onboarding so it will show again on next load?')) return
+    try {
+      const OnboardingManager = require('../utils/OnboardingManager').default
+      OnboardingManager.reset()
+    } catch (e) {
+      localStorage.removeItem('onboardingCompleted')
+      localStorage.removeItem('onboardingStep')
+    }
+    alert('Onboarding reset. It will appear again on next visit.')
+  }
+
   const handleSave = () => {
     savePreferences({ functional, analytics, marketing })
   }
@@ -86,6 +98,7 @@ const PrivacySettings = () => {
           <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-semibold">Save Preferences</button>
           <button onClick={acceptAll} className="px-4 py-2 rounded-lg bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200 font-semibold">Accept All</button>
           <button onClick={revokeConsent} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-semibold">Revoke Consent</button>
+          <button onClick={handleResetOnboarding} className="px-4 py-2 rounded-lg border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 font-semibold">Reset Onboarding</button>
         </div>
 
         <div className="mt-8">

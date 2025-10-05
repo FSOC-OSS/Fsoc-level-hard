@@ -17,6 +17,8 @@ import FooterPrivacy from "./components/FooterPrivacy";
 import NavBar from "./components/NavBar";
 import NotFoundPage from "./pages/NotFoundPage";
 import FAQPage from "./components/FAQPage";
+import Onboarding from './components/Onboarding'
+import OnboardingManager from './utils/OnboardingManager'
 
 function ProtectedRoute({ children }) {
     const { isAuthenticated, isLoading } = useAuth();
@@ -37,6 +39,8 @@ function App() {
         <Router>
             <ConsentProvider>
                 <NavBar />
+                {/* Show onboarding if not completed */}
+                {!OnboardingManager.isCompleted() && <Onboarding initialOpen={true} />}
                 <Routes>
                     <Route path="/auth" element={<AuthPage />} />
                     <Route path="/search" element={<SearchPage />} />

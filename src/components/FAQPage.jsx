@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Accordion from "./Accordion";
 import SearchBar from "./SearchBar";
 import ContactForm from "./ContactForm";
+import OnboardingManager from '../utils/OnboardingManager'
 
 const FAQPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,6 +62,9 @@ const FAQPage = () => {
 
         <div className="mt-12">
           <ContactForm />
+        </div>
+        <div className="mt-8 text-center">
+          <button onClick={() => OnboardingManager.open()} className="px-4 py-2 rounded bg-purple-600 text-white">Replay Onboarding</button>
         </div>
       </div>
     </div>
