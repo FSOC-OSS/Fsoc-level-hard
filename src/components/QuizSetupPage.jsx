@@ -2,9 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrophy } from "@fortawesome/free-solid-svg-icons";
+import { FadeIn, SlideIn, ScaleIn, StaggerChildren } from "./AnimationWrappers";
+import { useAnimations } from "../context/AnimationContext";
 import BookmarkManager from "../utils/BookmarkManager";
 
 const QuizSetupPage = ({ onStart }) => {
+    useAnimations();
     const [numQuestions, setNumQuestions] = useState(10);
     const [category, setCategory] = useState(null);
     const [difficulty, setDifficulty] = useState("Easy");
@@ -66,186 +69,191 @@ const QuizSetupPage = ({ onStart }) => {
 
     return (
         <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600 overflow-hidden">
-            <div className="w-full max-w-3xl">
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-xl">
-                    {/* Header */}
-                    <div className="flex items-center justify-center gap-2 mb-8">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-8 h-8 text-white relative top-[2px]"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                        >
-                            <path d="M19.43 12.98c.04-.32.07-.66.07-1s-.03-.68-.07-1l2.11-1.65a.5.5 0 00.11-.64l-2-3.46a.5.5 0 00-.61-.22l-2.49 1a7.03 7.03 0 00-1.73-1l-.38-2.65A.495.495 0 0014 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.63.27-1.21.61-1.73 1l-2.49-1a.5.5 0 00-.61.22l-2 3.46c-.14.23-.1.54.11.64L4.57 11c-.04.32-.07.66-.07 1s.03.68.07 1l-2.11 1.65a.5.5 0 00-.11.64l2 3.46c.14.23.41.3.61.22l2.49-1c.52.39 1.1.73 1.73 1l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.63-.27 1.21-.61 1.73-1l2.49 1c.2.08.47.01.61-.22l2-3.46a.5.5 0 00-.11-.64L19.43 12.98zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z" />
-                        </svg>
-                        <h1 className="text-3xl font-semibold text-white tracking-wide">
-                            Quiz Setup
-                        </h1>
-                    </div>
-                    <p className="text-center text-purple-100 mb-10">
-                        Configure your quiz preferences and get started!
-                    </p>
-
-                    {/* Number of Questions */}
-                    <div className="mb-6">
-                        <label className="block text-white font-medium mb-3">
-                            Number of Questions:{" "}
-                            <span className="text-yellow-300">
-                                {numQuestions}
-                            </span>
-                        </label>
-                        <RangeSlider
-                            value={numQuestions}
-                            onChange={setNumQuestions}
-                            min={5}
-                            max={50}
-                        />
-                    </div>
-
-                    {/* Category */}
-                    <div className="mb-6">
-                        <label className="block text-white font-medium mb-3">
-                            Category
-                        </label>
-                        {loadingCategories ? (
-                            <div className="text-purple-200">
-                                Loading categories...
+            <FadeIn duration={0.5}>
+                <div className="w-full max-w-3xl">
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 shadow-xl">
+                        <ScaleIn delay={0.2}>
+                            <div className="flex items-center justify-center gap-2 mb-8">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="w-8 h-8 text-white relative top-[2px]"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path d="M19.43 12.98c.04-.32.07-.66.07-1s-.03-.68-.07-1l2.11-1.65a.5.5 0 00.11-.64l-2-3.46a.5.5 0 00-.61-.22l-2.49 1a7.03 7.03 0 00-1.73-1l-.38-2.65A.495.495 0 0014 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.63.27-1.21.61-1.73 1l-2.49-1a.5.5 0 00-.61.22l-2 3.46c-.14.23-.1.54.11.64L4.57 11c-.04.32-.07.66-.07 1s.03.68.07 1l-2.11 1.65a.5.5 0 00-.11.64l2 3.46c.14.23.41.3.61.22l2.49-1c.52.39 1.10.73 1.73 1l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.63-.27 1.21-.61 1.73-1l2.49 1c.2.08.47.01.61-.22l2-3.46a.5.5 0 00-.11-.64L19.43 12.98zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z" />
+                                </svg>
+                                <h1 className="text-3xl font-semibold text-white tracking-wide">
+                                    Quiz Setup
+                                </h1>
                             </div>
-                        ) : error ? (
-                            <div className="text-red-400">{error}</div>
-                        ) : (
-                            <Dropdown
-                                id="category"
-                                value={category?.name || ""}
-                                onChange={setCategory}
-                                options={categories.map((c) => ({
-                                    id: c.id,
-                                    name: c.name,
-                                }))}
-                                openDropdown={openDropdown}
-                                setOpenDropdown={setOpenDropdown}
-                                renderLabel={(opt) => opt.name}
-                            />
-                        )}
-                    </div>
+                        </ScaleIn>
+                        
+                        <SlideIn direction="down" delay={0.3}>
+                            <p className="text-center text-purple-100 mb-10">
+                                Configure your quiz preferences and get started!
+                            </p>
+                        </SlideIn>
 
-                    {/* Difficulty */}
-                    <div className="mb-6">
-                        <label className="block text-white font-medium mb-3">
-                            Difficulty
-                        </label>
-                        <Dropdown
-                            id="difficulty"
-                            value={difficulty}
-                            onChange={setDifficulty}
-                            options={difficultyOptions}
-                            openDropdown={openDropdown}
-                            setOpenDropdown={setOpenDropdown}
-                        />
-                    </div>
-
-                    {/* Question Type */}
-                    <div className="mb-8">
-                        <label className="block text-white font-medium mb-3">
-                            Question Type
-                        </label>
-                        {loadingTypes ? (
-                            <div className="text-purple-200">
-                                Loading question types...
-                            </div>
-                        ) : (
-                            <Dropdown
-                                id="type"
-                                value={
-                                    questionTypes.find(
-                                        (t) => t.value === questionType,
-                                    )?.label || ""
-                                }
-                                onChange={(option) => {
-                                    if (typeof option === "string") {
-                                        const found = questionTypes.find(
-                                            (t) => t.label === option,
-                                        );
-                                        if (found) setQuestionType(found.value);
-                                    } else if (option?.value) {
-                                        setQuestionType(option.value);
-                                    }
-                                }}
-                                options={questionTypes}
-                                openDropdown={openDropdown}
-                                setOpenDropdown={setOpenDropdown}
-                                renderLabel={(opt) => opt.label}
-                            />
-                        )}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-4 mb-6">
-                        <button
-                            onClick={handleStartQuiz}
-                            className="flex-1 bg-gradient-to-r from-yellow-400 to-orange-500 py-4 rounded-xl font-semibold text-black flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
-                        >
-                            <svg
-                                className="w-5 h-5 mr-2"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
-                            Start Quiz
-                        </button>
-
-                        <button
-                            onClick={() => navigate("/badges")}
-                            className="bg-gradient-to-r from-purple-500 to-indigo-600 py-4 px-12 rounded-xl text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform"
-                            title="View Achievements & Badges"
-                        >
-                            <FontAwesomeIcon
-                                icon={faTrophy}
-                                className="w-6 h-6"
-                            />
-                        </button>
-
-                        <button
-                            onClick={() => navigate("/bookmarks")}
-                            className="bg-gradient-to-r from-purple-500 to-indigo-600 py-4 px-12 rounded-xl text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform relative"
-                            title="View Bookmarked Questions"
-                        >
-                            <svg
-                                className="w-6 h-6"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                        <StaggerChildren staggerDelay={0.15} initialDelay={0.4}>
+                            <div className="mb-6">
+                                <label className="block text-white font-medium mb-3">
+                                    Number of Questions:{" "}
+                                    <span className="text-yellow-300">
+                                        {numQuestions}
+                                    </span>
+                                </label>
+                                <RangeSlider
+                                    value={numQuestions}
+                                    onChange={setNumQuestions}
+                                    min={5}
+                                    max={50}
                                 />
-                            </svg>
-                            {BookmarkManager.getBookmarkCount() > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
-                                    {BookmarkManager.getBookmarkCount()}
-                                </span>
-                            )}
-                        </button>
-                    </div>
+                            </div>
 
-                    {/* Quick Settings */}
-                    <QuickSettings
-                        numQuestions={numQuestions}
-                        category={category}
-                        difficulty={difficulty}
-                        questionType={questionType}
-                    />
+                            <div className="mb-6">
+                                <label className="block text-white font-medium mb-3">
+                                    Category
+                                </label>
+                                {loadingCategories ? (
+                                    <div className="text-purple-200">
+                                        Loading categories...
+                                    </div>
+                                ) : error ? (
+                                    <div className="text-red-400">{error}</div>
+                                ) : (
+                                    <Dropdown
+                                        id="category"
+                                        value={category?.name || ""}
+                                        onChange={setCategory}
+                                        options={categories.map((c) => ({
+                                            id: c.id,
+                                            name: c.name,
+                                        }))}
+                                        openDropdown={openDropdown}
+                                        setOpenDropdown={setOpenDropdown}
+                                        renderLabel={(opt) => opt.name}
+                                    />
+                                )}
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-white font-medium mb-3">
+                                    Difficulty
+                                </label>
+                                <Dropdown
+                                    id="difficulty"
+                                    value={difficulty}
+                                    onChange={setDifficulty}
+                                    options={difficultyOptions}
+                                    openDropdown={openDropdown}
+                                    setOpenDropdown={setOpenDropdown}
+                                />
+                            </div>
+
+                            <div className="mb-8">
+                                <label className="block text-white font-medium mb-3">
+                                    Question Type
+                                </label>
+                                {loadingTypes ? (
+                                    <div className="text-purple-200">
+                                        Loading question types...
+                                    </div>
+                                ) : (
+                                    <Dropdown
+                                        id="type"
+                                        value={
+                                            questionTypes.find(
+                                                (t) => t.value === questionType,
+                                            )?.label || ""
+                                        }
+                                        onChange={(option) => {
+                                            if (typeof option === "string") {
+                                                const found = questionTypes.find(
+                                                    (t) => t.label === option,
+                                                );
+                                                if (found) setQuestionType(found.value);
+                                            } else if (option?.value) {
+                                                setQuestionType(option.value);
+                                            }
+                                        }}
+                                        options={questionTypes}
+                                        openDropdown={openDropdown}
+                                        setOpenDropdown={setOpenDropdown}
+                                        renderLabel={(opt) => opt.label}
+                                    />
+                                )}
+                            </div>
+                        </StaggerChildren>
+
+                        <SlideIn direction="up" delay={0.9}>
+                            <div className="flex gap-4 mb-6">
+                                <button
+                                    onClick={handleStartQuiz}
+                                    className="flex-1 bg-gradient-to-r from-yellow-400 to-orange-500 py-4 rounded-xl font-semibold text-black flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+                                >
+                                    <svg
+                                        className="w-5 h-5 mr-2"
+                                        fill="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                    Start Quiz
+                                </button>
+
+                                <button
+                                    onClick={() => navigate("/badges")}
+                                    className="bg-gradient-to-r from-purple-500 to-indigo-600 py-4 px-12 rounded-xl text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform"
+                                    title="View Achievements & Badges"
+                                >
+                                    <FontAwesomeIcon
+                                        icon={faTrophy}
+                                        className="w-6 h-6"
+                                    />
+                                </button>
+
+                                <button
+                                    onClick={() => navigate("/bookmarks")}
+                                    className="bg-gradient-to-r from-purple-500 to-indigo-600 py-4 px-12 rounded-xl text-white flex items-center justify-center shadow-md hover:scale-105 transition-transform relative"
+                                    title="View Bookmarked Questions"
+                                >
+                                    <svg
+                                        className="w-6 h-6"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                                        />
+                                    </svg>
+                                    {BookmarkManager.getBookmarkCount() > 0 && (
+                                        <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+                                            {BookmarkManager.getBookmarkCount()}
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
+                        </SlideIn>
+
+                        <FadeIn delay={1.1}>
+                            <QuickSettings
+                                numQuestions={numQuestions}
+                                category={category}
+                                difficulty={difficulty}
+                                questionType={questionType}
+                            />
+                        </FadeIn>
+                    </div>
                 </div>
-            </div>
+            </FadeIn>
         </div>
     );
 };
 
-/* Sub-components */
 const RangeSlider = ({ value, onChange, min, max }) => {
     const percentage = ((value - min) / (max - min)) * 100;
     return (
@@ -368,51 +376,49 @@ const QuickSettings = ({
     const getShortType = (type) => (type === "multiple" ? "MC" : "TF");
 
     return (
-        <div className="w-full flex justify-center">
-            <div className="grid grid-cols-5 gap-3 w-full max-w-5xl">
-                {/* Questions */}
-                <div className="bg-white/10 border border-white/20 rounded-xl p-4 text-center">
-                    <div className="text-2xl font-extrabold text-yellow-400">
-                        {numQuestions}
+        <StaggerChildren staggerDelay={0.1}>
+            <div className="w-full flex justify-center">
+                <div className="grid grid-cols-5 gap-3 w-full max-w-5xl">
+                    <div className="bg-white/10 border border-white/20 rounded-xl p-4 text-center">
+                        <div className="text-2xl font-extrabold text-yellow-400">
+                            {numQuestions}
+                        </div>
+                        <div className="text-sm font-semibold text-gray-100">
+                            Questions
+                        </div>
                     </div>
-                    <div className="text-sm font-semibold text-gray-100">
-                        Questions
-                    </div>
-                </div>
 
-                {/* Category */}
-                <div className="col-span-2 bg-white/10 border border-white/20 rounded-xl p-4 text-center">
-                    <div className="text-lg font-bold text-amber-300">
-                        {category?.name || ""}
+                    <div className="col-span-2 bg-white/10 border border-white/20 rounded-xl p-4 text-center">
+                        <div className="text-lg font-bold text-amber-300">
+                            {category?.name || ""}
+                        </div>
+                        <div className="text-sm font-semibold text-gray-100">
+                            Category
+                        </div>
                     </div>
-                    <div className="text-sm font-semibold text-gray-100">
-                        Category
-                    </div>
-                </div>
 
-                {/* Difficulty */}
-                <div className="bg-white/10 border border-white/20 rounded-xl p-4 text-center">
-                    <div
-                        className={`text-lg ${getDifficultyColor(difficulty)}`}
-                    >
-                        {difficulty}
+                    <div className="bg-white/10 border border-white/20 rounded-xl p-4 text-center">
+                        <div
+                            className={`text-lg ${getDifficultyColor(difficulty)}`}
+                        >
+                            {difficulty}
+                        </div>
+                        <div className="text-sm font-semibold text-gray-100">
+                            Difficulty
+                        </div>
                     </div>
-                    <div className="text-sm font-semibold text-gray-100">
-                        Difficulty
-                    </div>
-                </div>
 
-                {/* Type */}
-                <div className="bg-white/10 border border-white/20 rounded-xl p-4 text-center">
-                    <div className="text-lg font-bold text-green-300">
-                        {getShortType(questionType)}
-                    </div>
-                    <div className="text-sm font-semibold text-gray-100">
-                        Type
+                    <div className="bg-white/10 border border-white/20 rounded-xl p-4 text-center">
+                        <div className="text-lg font-bold text-green-300">
+                            {getShortType(questionType)}
+                        </div>
+                        <div className="text-sm font-semibold text-gray-100">
+                            Type
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </StaggerChildren>
     );
 };
 

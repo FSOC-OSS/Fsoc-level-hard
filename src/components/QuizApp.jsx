@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { PageTransition } from "./AnimationWrappers";
+import { useAnimations } from "../context/AnimationContext";
 import QuizQuestion from "./QuizQuestion";
 import QuizResults from "./QuizResults";
 import QuizReviewWrapper from "./QuizReviewWrapper";
@@ -16,6 +18,8 @@ import BookmarkManager from "../utils/BookmarkManager";
 import BadgeManager from "../utils/BadgeManager";
 
 const QuizApp = () => {
+  const { getAnimationClass } = useAnimations();
+
   // ---------- Core Quiz State ----------
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -384,33 +388,35 @@ const QuizApp = () => {
 
   if (error) {
     return (
-      <div className="h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Oops! Something went wrong</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <div className="space-y-3">
-            <button
-              onClick={fetchQuestions}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200"
-            >
-              Try Again
-            </button>
-            <button
-              onClick={handleBackToSetup}
-              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold py-3 px-6 rounded-lg transition-all duration-200"
-            >
-              ⚙️ Back to Setup
-            </button>
+      <PageTransition>
+        <div className="h-screen bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center p-4">
+          <div className={`bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center ${getAnimationClass('animate-scale-in')}`}>
+            <div className="text-red-500 text-6xl mb-4 animate-bounce">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Oops! Something went wrong</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <div className="space-y-3">
+              <button
+                onClick={fetchQuestions}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 ripple"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={handleBackToSetup}
+                className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold py-3 px-6 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 ripple"
+              >
+                ⚙️ Back to Setup
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </PageTransition>
     );
   }
 
   if (quizCompleted) {
     return (
-      <>
+      <PageTransition>
         <KeyboardShortcuts />
         <QuizResults
           score={score}
@@ -421,100 +427,103 @@ const QuizApp = () => {
           userAnswers={selectedAnswers}
           questionRatings={questionRatings}
         />
-      </>
+      </PageTransition>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 p-4">
-      <KeyboardShortcuts onPauseToggle={handlePauseToggle} isPaused={isQuizPaused} />
+    <PageTransition>
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-600 p-4">
+        <KeyboardShortcuts onPauseToggle={handlePauseToggle} isPaused={isQuizPaused} />
 
-      <PauseOverlay
-        isVisible={isQuizPaused}
-        onResume={handlePauseToggle}
-        currentQuestionNumber={currentQuestionIndex + 1}
-        totalQuestions={questions.length}
-        timeRemaining={timeRemaining}
-        score={score}
-        onBackToSetup={handleBackToSetup}
-      />
+        <PauseOverlay
+          isVisible={isQuizPaused}
+          onResume={handlePauseToggle}
+          currentQuestionNumber={currentQuestionIndex + 1}
+          totalQuestions={questions.length}
+          timeRemaining={timeRemaining}
+          score={score}
+          onBackToSetup={handleBackToSetup}
+        />
 
-      <div className="max-w-4xl mx-auto pt-4">
-        <div className="text-center mb-8 relative">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">Quiz Challenge</h1>
-          <p className="text-purple-200 text-lg">
-            Test your knowledge with {selectedCategory || "this topic"} questions!
-          </p>
+        <div className="max-w-4xl mx-auto pt-4">
+          <div className={`text-center mb-8 relative ${getAnimationClass('animate-fade-in')}`}>
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">Quiz Challenge</h1>
+            <p className="text-purple-200 text-lg">
+              Test your knowledge with {selectedCategory || "this topic"} questions!
+            </p>
 
-          <div className="absolute top-0 right-0 flex gap-2 items-center">
-            <button
-              onClick={handlePauseToggle}
-              disabled={quizCompleted}
-              className={`flex items-center justify-center w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 hover:border-white/40 ${
-                quizCompleted ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-              }`}
-              aria-label={isQuizPaused ? "Resume quiz" : "Pause quiz"}
-              title={isQuizPaused ? "Resume quiz (Spacebar)" : "Pause quiz (Spacebar)"}
-            >
-              <span className="text-lg">{isQuizPaused ? "▶️" : "⏸️"}</span>
-            </button>
-            <ThemeToggle className="bg-white/20 text-white hover:bg-white/30" />
-            <TimerSettings
-              currentDuration={timerDuration}
-              onDurationChange={setTimerDuration}
+            <div className="absolute top-0 right-0 flex gap-2 items-center">
+              <button
+                onClick={handlePauseToggle}
+                disabled={quizCompleted}
+                className={`flex items-center justify-center w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-all duration-200 backdrop-blur-sm border border-white/20 hover:border-white/40 hover:scale-110 active:scale-95 ${
+                  quizCompleted ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                }`}
+                aria-label={isQuizPaused ? "Resume quiz" : "Pause quiz"}
+                title={isQuizPaused ? "Resume quiz (Spacebar)" : "Pause quiz (Spacebar)"}
+              >
+                <span className="text-lg">{isQuizPaused ? "▶️" : "⏸️"}</span>
+              </button>
+              <ThemeToggle className="bg-white/20 text-white hover:bg-white/30" />
+              <TimerSettings
+                currentDuration={timerDuration}
+                onDurationChange={setTimerDuration}
+                isTimerEnabled={isTimerEnabled}
+                onTimerToggle={setIsTimerEnabled}
+              />
+            </div>
+          </div>
+
+          <div className="bg-white/20 rounded-full h-3 mb-8 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-pink-400 to-indigo-500 h-full rounded-full progress-fill"
+              style={{
+                width: `${questions.length ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0}%`,
+              }}
+            />
+          </div>
+
+          {isTimerEnabled && timerDuration > 0 && (
+            <div className={`mb-6 ${getAnimationClass('animate-fade-in')}`}>
+              <CountdownTimer
+                duration={timerDuration}
+                onTimeUp={handleTimerExpired}
+                isActive={!quizCompleted}
+                isPaused={isTimerPaused || isQuizPaused}
+                onWarning={handleTimerWarning}
+                showWarningAt={10}
+                initialTimeRemaining={timeRemaining}
+                onTimeUpdate={setTimeRemaining}
+                key={`timer-${currentQuestionIndex}`}
+              />
+            </div>
+          )}
+
+          <div className={`text-center mb-6 ${getAnimationClass('animate-fade-in')}`}>
+            <span className="bg-white/20 text-white px-4 py-2 rounded-full text-lg font-semibold">
+              Question <span className={getAnimationClass('animate-flip')} key={currentQuestionIndex}>{currentQuestionIndex + 1}</span> of {questions.length || 0}
+            </span>
+          </div>
+
+          {questions.length > 0 && !isQuizPaused && (
+            <QuizQuestion
+              key={currentQuestionIndex}
+              question={questions[currentQuestionIndex]}
+              onAnswerSelect={handleAnswerSelect}
+              selectedAnswer={selectedAnswers[currentQuestionIndex]?.selectedAnswer}
               isTimerEnabled={isTimerEnabled}
-              onTimerToggle={setIsTimerEnabled}
+              onResultAnnounced={handleResultAnnounced}
+              hintsRemaining={hintsRemaining}
+              onRequestHint={requestHint}
+              userId={userId}
+              username={username}
+              onRatingSubmit={handleQuestionRating}
             />
-          </div>
+          )}
         </div>
-
-        <div className="bg-white/20 rounded-full h-3 mb-8 overflow-hidden">
-          <div
-            className="bg-gradient-to-r from-pink-400 to-indigo-500 h-full rounded-full transition-all duration-500 ease-out"
-            style={{
-              width: `${questions.length ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0}%`,
-            }}
-          />
-        </div>
-
-        {isTimerEnabled && timerDuration > 0 && (
-          <div className="mb-6">
-            <CountdownTimer
-              duration={timerDuration}
-              onTimeUp={handleTimerExpired}
-              isActive={!quizCompleted}
-              isPaused={isTimerPaused || isQuizPaused}
-              onWarning={handleTimerWarning}
-              showWarningAt={10}
-              initialTimeRemaining={timeRemaining}
-              onTimeUpdate={setTimeRemaining}
-              key={`timer-${currentQuestionIndex}`}
-            />
-          </div>
-        )}
-
-        <div className="text-center mb-6">
-          <span className="bg-white/20 text-white px-4 py-2 rounded-full text-lg font-semibold">
-            Question {currentQuestionIndex + 1} of {questions.length || 0}
-          </span>
-        </div>
-
-        {questions.length > 0 && !isQuizPaused && (
-          <QuizQuestion
-            question={questions[currentQuestionIndex]}
-            onAnswerSelect={handleAnswerSelect}
-            selectedAnswer={selectedAnswers[currentQuestionIndex]?.selectedAnswer}
-            isTimerEnabled={isTimerEnabled}
-            onResultAnnounced={handleResultAnnounced}
-            hintsRemaining={hintsRemaining}
-            onRequestHint={requestHint}
-            userId={userId}
-            username={username}
-            onRatingSubmit={handleQuestionRating}
-          />
-        )}
       </div>
-    </div>
+    </PageTransition>
   );
 };
 
